@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FF1A1A2E"
+    android:padding="12dp">
+
+    <!-- Título -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🔍 System Explorer — Ts8227L"
+        android:textColor="#FFFFFF"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        android:paddingBottom="12dp" />
+
+    <!-- Tabs de categorías -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/tabs_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/tab_media"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="📻 Media"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1E3A5F"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/tab_can"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="🚗 CAN"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1E3A5F"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/tab_tpms"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="🛞 TPMS"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1E3A5F"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/tab_sistema"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="⚙️ Sistema"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1E3A5F"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/tab_sniffer"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="📡 Sniffer"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#2E5F1E"
+                android:layout_marginEnd="4dp" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Separador -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#334466"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Estado del sniffer -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/txt_sniffer_estado"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📡 Sniffer: INACTIVO 🔴"
+            android:textColor="#88AACC"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/txt_broadcasts_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 broadcasts capturados"
+            android:textColor="#556677"
+            android:textSize="10sp" />
+
+    </LinearLayout>
+
+    <!-- Label log -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📋 Log en tiempo real:"
+        android:textColor="#88AACC"
+        android:textSize="12sp"
+        android:paddingBottom="4dp" />
+
+    <!-- Área de log -->
+    <ScrollView
+        android:id="@+id/scroll_log"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#0D1117"
+        android:padding="4dp">
+
+        <TextView
+            android:id="@+id/tv_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#00FF88"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:padding="8dp"
+            android:text="" />
+
+    </ScrollView>
+
+    <!-- Botones inferiores -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btn_limpiar"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="🗑 Limpiar"
+            android:textSize="11sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#3A1E1E" />
+
+        <Button
+            android:id="@+id/btn_copiar"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="📋 Copiar"
+            android:textSize="11sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#1E3A5F" />
+
+        <Button
+            android:id="@+id/btn_verificar"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="✅ Verificar"
+            android:textSize="11sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#1E5F3A" />
+
+        <Button
+            android:id="@+id/btn_cerrar"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="✖ Cerrar"
+            android:textSize="11sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#3A3A3A" />
+
+    </LinearLayout>
+
+</LinearLayout>
