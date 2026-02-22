@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -21,6 +22,7 @@ import codigo.cafe.alsvinlaunch.managers.ShortcutManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
 import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
 import codigo.cafe.alsvinlaunch.managers.ThemeManager;
+import codigo.cafe.alsvinlaunch.managers.VolumeManagerService;
 
 /**
  * Actividad principal del launcher.
@@ -71,17 +73,27 @@ public class MainActivity extends Activity {
         shortcutManager = new ShortcutManager(this, prefs);
         shortcutManager.setOnAppOpenListener(new ShortcutManager.OnAppOpenListener() {
             @Override
-            public void onAppOpening() { abriendoApp = true; }
+            public void onAppOpening() {
+                abriendoApp = true;
+            }
+
             @Override
-            public void onAppOpenFailed() { abriendoApp = false; }
+            public void onAppOpenFailed() {
+                abriendoApp = false;
+            }
         });
 
         systemPanelManager = new SystemPanelManager(this, panelSistema);
         systemPanelManager.setOnAppOpenListener(new SystemPanelManager.OnAppOpenListener() {
             @Override
-            public void onAppOpening() { abriendoApp = true; }
+            public void onAppOpening() {
+                abriendoApp = true;
+            }
+
             @Override
-            public void onAppOpenFailed() { abriendoApp = false; }
+            public void onAppOpenFailed() {
+                abriendoApp = false;
+            }
         });
 
         btContactsManager = new BluetoothContactsManager(this);
@@ -91,7 +103,6 @@ public class MainActivity extends Activity {
 
         contactsDialogHelper = new ContactsDialogHelper(this, prefs, btContactsManager);
         contactsDialogHelper.setOnAppOpenListener(() -> abriendoApp = true);
-
 
 
         // ── Configurar ──
@@ -111,6 +122,8 @@ public class MainActivity extends Activity {
         mediaWidgetManager.iniciar();
         statusIndicatorManager.iniciar();
         aplicarTema();
+
+        startService(new Intent(this, VolumeManagerService.class));
     }
 
     // ══════════════════════════════════════
@@ -175,6 +188,27 @@ public class MainActivity extends Activity {
             abriendoApp = true; // ← ESTO faltaba
             startActivity(new Intent(this, SystemExplorerActivity.class));
             return true;
+        });
+        findViewById(R.id.fab_reboot).setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("Reiniciar")
+                    .setMessage("¿Deseas reiniciar el dispositivo?")
+                    .setPositiveButton("Reiniciar", (d, w) -> intentarReboot())
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+        });
+// Long press → reinicio rápido sin confirmación (útil en producción)
+        findViewById(R.id.fab_reboot).setOnLongClickListener(v -> {
+            try {
+                Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot"});
+            } catch (Exception e) {
+                Toast.makeText(this, "Se requiere root", Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        });
+        findViewById(R.id.fab_volume).setOnClickListener(v -> {
+            abriendoApp = true;
+            startActivity(new Intent(this, VolumeActivity.class));
         });
     }
 
@@ -279,5 +313,45 @@ public class MainActivity extends Activity {
 
     private void mostrarMensaje(String mensaje) {
         Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show();
+    }
+
+    private void intentarReboot() {
+        // Intento 1: PowerManager
+        try {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            pm.reboot(null);
+            return;
+        } catch (Exception ignored) {
+        }
+
+        // Intento 2: Broadcasts de fabricantes
+        String[] broadcasts = {
+                "android.intent.action.REBOOT",
+                "com.android.internal.app.RebootRequestReceiver",
+                "com.rk.action.REBOOT",        // Rockchip
+                "com.allwinner.action.REBOOT",  // Allwinner
+                "com.mediatek.action.REBOOT"    // MediaTek
+        };
+        for (String accion : broadcasts) {
+            try {
+                Intent i = new Intent(accion);
+                i.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+                sendBroadcast(i);
+                return;
+            } catch (Exception ignored) {
+            }
+        }
+
+        // Intento 3: Runtime sin su
+        try {
+            Runtime.getRuntime().exec(new String[]{"reboot"});
+            return;
+        } catch (Exception ignored) {
+        }
+
+        // Nada funcionó
+        Toast.makeText(this,
+                "Este dispositivo no permite reinicio desde apps",
+                Toast.LENGTH_LONG).show();
     }
 }

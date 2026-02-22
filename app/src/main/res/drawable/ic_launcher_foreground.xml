@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Sombra del carro -->
+    <path
+        android:fillColor="#22000000"
+        android:pathData="M36,70 Q54,73 72,70 Q72,72 54,74 Q36,72 36,70z" />
+
+    <!-- Cuerpo del carro -->
+    <path
+        android:fillColor="#FFE8EEF4"
+        android:pathData="M33,62 L33,56 Q33,54 35,54 L40,54 L43,44 Q44,41 47,41 L61,41 Q64,41 65,44 L68,54 L73,54 Q75,54 75,56 L75,62 Q75,64 73,64 L35,64 Q33,64 33,62z" />
+
+    <!-- Techo / parabrisas -->
+    <path
+        android:fillColor="#FF00BCD4"
+        android:pathData="M43.5,53 L45.5,45 Q46,43.5 47.5,43.5 L60.5,43.5 Q62,43.5 62.5,45 L64.5,53z" />
+
+    <!-- Pilar central parabrisas -->
+    <path
+        android:fillColor="#FF80CBC4"
+        android:pathData="M53.5,43.5 L54.5,43.5 L54.5,53 L53.5,53z" />
+
+    <!-- Faro izquierdo -->
+    <path
+        android:fillColor="#FFFDD835"
+        android:pathData="M34.5,55.5 Q34.5,54.5 35.5,54.5 L39,54.5 L39,57.5 L35.5,57.5 Q34.5,57.5 34.5,56.5z" />
+
+    <!-- Faro derecho -->
+    <path
+        android:fillColor="#FFFDD835"
+        android:pathData="M69,54.5 L72.5,54.5 Q73.5,54.5 73.5,55.5 L73.5,56.5 Q73.5,57.5 72.5,57.5 L69,57.5z" />
+
+    <!-- Grilla -->
+    <path
+        android:fillColor="#FF546E7A"
+        android:pathData="M44,55 L64,55 Q64.5,55 64.5,55.5 L64.5,57 Q64.5,57.5 64,57.5 L44,57.5 Q43.5,57.5 43.5,57 L43.5,55.5 Q43.5,55 44,55z" />
+    <path
+        android:fillColor="#FF37474F"
+        android:pathData="M46,55.8 L62,55.8 L62,56.2 L46,56.2z" />
+    <path
+        android:fillColor="#FF37474F"
+        android:pathData="M45,56.8 L63,56.8 L63,57.2 L45,57.2z" />
+
+    <!-- Bumper -->
+    <path
+        android:fillColor="#FFB0BEC5"
+        android:pathData="M36,60 L72,60 Q73,60 73,61 L73,63.5 Q73,64 72,64 L36,64 Q35,64 35,63.5 L35,61 Q35,60 36,60z" />
+
+    <!-- Placa -->
+    <path
+        android:fillColor="#FF455A64"
+        android:pathData="M48,60.5 L60,60.5 Q60.5,60.5 60.5,61 L60.5,63 Q60.5,63.5 60,63.5 L48,63.5 Q47.5,63.5 47.5,63 L47.5,61 Q47.5,60.5 48,60.5z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M49,61.2 L59,61.2 L59,62.8 L49,62.8z" />
+
+    <!-- Rueda izquierda -->
+    <path
+        android:fillColor="#FF37474F"
+        android:pathData="M38,63m-3.5,0a3.5,3.5 0,1 1,7 0a3.5,3.5 0,1 1,-7 0" />
+    <path
+        android:fillColor="#FF78909C"
+        android:pathData="M38,63m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <path
+        android:fillColor="#FFB0BEC5"
+        android:pathData="M38,63m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+
+    <!-- Rueda derecha -->
+    <path
+        android:fillColor="#FF37474F"
+        android:pathData="M70,63m-3.5,0a3.5,3.5 0,1 1,7 0a3.5,3.5 0,1 1,-7 0" />
+    <path
+        android:fillColor="#FF78909C"
+        android:pathData="M70,63m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <path
+        android:fillColor="#FFB0BEC5"
+        android:pathData="M70,63m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+
+    <!-- Líneas de velocidad -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M26,52 L31,52"
+        android:strokeColor="#6600BCD4"
+        android:strokeWidth="1" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M24,55 L30,55"
+        android:strokeColor="#4400BCD4"
+        android:strokeWidth="0.8" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M25,58 L30,58"
+        android:strokeColor="#3300BCD4"
+        android:strokeWidth="0.6" />
+
+</vector>

@@ -100,7 +100,45 @@
                 android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_weight="1" />
+            <LinearLayout
+                android:id="@+id/fab_volume"
+                android:layout_width="50dp"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/fab_bg"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginEnd="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:elevation="6dp">
 
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_volume" />
+            </LinearLayout>
+            <!-- Botón reiniciar - junto al botón sistema -->
+            <LinearLayout
+                android:id="@+id/fab_reboot"
+                android:layout_width="50dp"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/fab_bg"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginEnd="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:elevation="6dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_reboot" />
+            </LinearLayout>
             <!-- Botón sistema - derecha -->
             <LinearLayout
                 android:id="@+id/fab_system"

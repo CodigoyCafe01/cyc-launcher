@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/dialogo_bg"
+    android:padding="40dp">
+
+    <TextView
+        android:id="@+id/titulo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Contactos Rápidos"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:paddingBottom="20dp"/>
+
+    <!-- Contacto 0 -->
+    <include layout="@layout/item_contacto_rapido"
+        android:id="@+id/fila_contacto_0"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"/>
+
+    <!-- Contacto 1 -->
+    <include layout="@layout/item_contacto_rapido"
+        android:id="@+id/fila_contacto_1"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"/>
+
+    <!-- Contacto 2 -->
+    <include layout="@layout/item_contacto_rapido"
+        android:id="@+id/fila_contacto_2"/>
+
+    <TextView
+        android:id="@+id/boton_cerrar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cerrar"
+        android:textColor="#B0B0B0"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:paddingTop="24dp"
+        android:paddingBottom="4dp"/>
+
+</LinearLayout>
