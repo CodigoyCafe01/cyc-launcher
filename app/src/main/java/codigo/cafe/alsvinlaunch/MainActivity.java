@@ -1,11 +1,13 @@
 package codigo.cafe.alsvinlaunch;
 
+import android.animation.ArgbEvaluator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.PowerManager;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -13,16 +15,20 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.List;
+
 import codigo.cafe.alsvinlaunch.managers.BluetoothContactsManager;
+import codigo.cafe.alsvinlaunch.managers.BtNotifReceiverManager;
 import codigo.cafe.alsvinlaunch.managers.ClockManager;
 import codigo.cafe.alsvinlaunch.managers.ContactsDialogHelper;
 import codigo.cafe.alsvinlaunch.managers.KioskManager;
 import codigo.cafe.alsvinlaunch.managers.MediaWidgetManager;
+import codigo.cafe.alsvinlaunch.managers.NotifPanelManager;
+import codigo.cafe.alsvinlaunch.managers.PermissionsManager;
 import codigo.cafe.alsvinlaunch.managers.ShortcutManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
 import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
 import codigo.cafe.alsvinlaunch.managers.ThemeManager;
-import codigo.cafe.alsvinlaunch.managers.VolumeManagerService;
 
 /**
  * Actividad principal del launcher.
@@ -30,26 +36,39 @@ import codigo.cafe.alsvinlaunch.managers.VolumeManagerService;
  */
 public class MainActivity extends Activity {
 
-    private static final String NOMBRE_PREFS = "alsvin_launcher_prefs";
+    private static final String NOMBRE_PREFS        = "alsvin_launcher_prefs";
+    private static final String PREF_COLOR_DINAMICO = "color_dinamico";
+    private static final int    COLOR_BASE_FONDO    = 0xFF1A1A2E;
 
     // ── Managers ──
-    private ClockManager clockManager;
-    private ThemeManager themeManager;
-    private ShortcutManager shortcutManager;
-    private SystemPanelManager systemPanelManager;
-    private MediaWidgetManager mediaWidgetManager;
-    private StatusIndicatorManager statusIndicatorManager;
-    private ContactsDialogHelper contactsDialogHelper;
-    private KioskManager kioskManager;
+    private ClockManager             clockManager;
+    private ThemeManager             themeManager;
+    private ShortcutManager          shortcutManager;
+    private SystemPanelManager       systemPanelManager;
+    private MediaWidgetManager       mediaWidgetManager;
+    private StatusIndicatorManager   statusIndicatorManager;
+    private ContactsDialogHelper     contactsDialogHelper;
+    private KioskManager             kioskManager;
     private BluetoothContactsManager btContactsManager;
+    private BtNotifReceiverManager   btNotifReceiver;
+    private NotifPanelManager        notifPanelManager;
 
     // ── Estado ──
-    private boolean abriendoApp = false;
+    private boolean abriendoApp       = false;
+    private boolean modoColorDinamico = false;
+    private int     colorActualFondo  = COLOR_BASE_FONDO;
 
     // ── Vistas directas ──
-    private TextView textoReloj;
-    private TextView textoFecha;
+    private TextView  textoReloj;
+    private TextView  textoFecha;
     private ImageView botonTema;
+
+    private PermissionsManager permissionsManager;
+    private SharedPreferences  prefs;
+
+    // ══════════════════════════════════════
+    //  CICLO DE VIDA
+    // ══════════════════════════════════════
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,53 +76,69 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        SharedPreferences prefs = getSharedPreferences(NOMBRE_PREFS, MODE_PRIVATE);
+        prefs = getSharedPreferences(NOMBRE_PREFS, MODE_PRIVATE);
 
         // ── Buscar vistas ──
-        textoReloj = (TextView) findViewById(R.id.clock_text);
-        textoFecha = (TextView) findViewById(R.id.date_text);
-        botonTema = (ImageView) findViewById(R.id.btn_theme_toggle);
-        LinearLayout panelSistema = (LinearLayout) findViewById(R.id.system_panel);
+        textoReloj = findViewById(R.id.clock_text);
+        textoFecha = findViewById(R.id.date_text);
+        botonTema  = findViewById(R.id.btn_theme_toggle);
+        LinearLayout panelSistema = findViewById(R.id.system_panel);
 
         // ── Inicializar managers ──
-        clockManager = new ClockManager(this, textoReloj, textoFecha);
-        themeManager = new ThemeManager(this, prefs);
-        kioskManager = new KioskManager(this, prefs);
+        clockManager  = new ClockManager(this, textoReloj, textoFecha);
+        themeManager  = new ThemeManager(this, prefs);
+        kioskManager  = new KioskManager(this, prefs);
+
+        permissionsManager = new PermissionsManager(this);
+        permissionsManager.setOnAbrirAjustesListener(() -> abriendoApp = true);
+        permissionsManager.setOnPermisosListener(todosActivos -> {
+            View badge = findViewById(R.id.badge_permisos);
+            badge.setVisibility(todosActivos ? View.GONE : View.VISIBLE);
+        });
+        findViewById(R.id.badge_permisos).setOnClickListener(v ->
+                permissionsManager.mostrarDialogPermisosFaltantes());
+        permissionsManager.verificar();
 
         shortcutManager = new ShortcutManager(this, prefs);
         shortcutManager.setOnAppOpenListener(new ShortcutManager.OnAppOpenListener() {
-            @Override
-            public void onAppOpening() {
-                abriendoApp = true;
-            }
-
-            @Override
-            public void onAppOpenFailed() {
-                abriendoApp = false;
-            }
+            @Override public void onAppOpening()    { abriendoApp = true;  }
+            @Override public void onAppOpenFailed() { abriendoApp = false; }
         });
 
         systemPanelManager = new SystemPanelManager(this, panelSistema);
         systemPanelManager.setOnAppOpenListener(new SystemPanelManager.OnAppOpenListener() {
-            @Override
-            public void onAppOpening() {
-                abriendoApp = true;
-            }
-
-            @Override
-            public void onAppOpenFailed() {
-                abriendoApp = false;
-            }
+            @Override public void onAppOpening()    { abriendoApp = true;  }
+            @Override public void onAppOpenFailed() { abriendoApp = false; }
         });
 
-        btContactsManager = new BluetoothContactsManager(this);
-
-        mediaWidgetManager = new MediaWidgetManager(this);
+        btContactsManager      = new BluetoothContactsManager(this);
+        mediaWidgetManager     = new MediaWidgetManager(this);
         statusIndicatorManager = new StatusIndicatorManager(this);
 
         contactsDialogHelper = new ContactsDialogHelper(this, prefs, btContactsManager);
         contactsDialogHelper.setOnAppOpenListener(() -> abriendoApp = true);
 
+        // ── Notificaciones BT (Notisvin) ──────────────────────────────────────
+        notifPanelManager = new NotifPanelManager(this);
+        btNotifReceiver   = new BtNotifReceiverManager(notif ->
+                notifPanelManager.agregarNotif(notif));
+        btNotifReceiver.iniciar();
+        // ─────────────────────────────────────────────────────────────────────
+
+        // ── Color dinámico (Palette) ──────────────────────────────────────────
+        modoColorDinamico = prefs.getBoolean(PREF_COLOR_DINAMICO, false);
+
+        mediaWidgetManager.setOnColorExtraidoListener(new MediaWidgetManager.OnColorExtraidoListener() {
+            @Override
+            public void onColor(int colorDominante) {
+                if (modoColorDinamico) animarColorFondo(colorDominante);
+            }
+            @Override
+            public void onSinColor() {
+                if (modoColorDinamico) animarColorFondo(COLOR_BASE_FONDO);
+            }
+        });
+        // ─────────────────────────────────────────────────────────────────────
 
         // ── Configurar ──
         shortcutManager.precargarSiNecesario();
@@ -115,6 +150,7 @@ public class MainActivity extends Activity {
         configurarBotonApps();
         configurarBotonSistema();
         configurarIndicadoresEstado();
+        configurarReproductor();
 
         // ── Arrancar servicios ──
         shortcutManager.cargar();
@@ -122,8 +158,6 @@ public class MainActivity extends Activity {
         mediaWidgetManager.iniciar();
         statusIndicatorManager.iniciar();
         aplicarTema();
-
-        startService(new Intent(this, VolumeManagerService.class));
     }
 
     // ══════════════════════════════════════
@@ -145,9 +179,10 @@ public class MainActivity extends Activity {
                 }
             }
         });
-        // Long press en el reloj → abre sniffer
+
+        // Long press → sniffer de broadcasts
         findViewById(R.id.boton_reloj).setOnLongClickListener(v -> {
-            abriendoApp = true; // ← ESTO faltaba
+            abriendoApp = true;
             startActivity(new Intent(this, BroadcastSnifferActivity.class));
             return true;
         });
@@ -182,34 +217,8 @@ public class MainActivity extends Activity {
     }
 
     private void configurarBotonSistema() {
-        findViewById(R.id.fab_system).setOnClickListener(v -> systemPanelManager.alternar());
         findViewById(R.id.root_layout).setOnClickListener(v -> systemPanelManager.ocultar());
-        findViewById(R.id.fab_system).setOnLongClickListener(v -> {
-            abriendoApp = true; // ← ESTO faltaba
-            startActivity(new Intent(this, SystemExplorerActivity.class));
-            return true;
-        });
-        findViewById(R.id.fab_reboot).setOnClickListener(v -> {
-            new android.app.AlertDialog.Builder(this)
-                    .setTitle("Reiniciar")
-                    .setMessage("¿Deseas reiniciar el dispositivo?")
-                    .setPositiveButton("Reiniciar", (d, w) -> intentarReboot())
-                    .setNegativeButton("Cancelar", null)
-                    .show();
-        });
-// Long press → reinicio rápido sin confirmación (útil en producción)
-        findViewById(R.id.fab_reboot).setOnLongClickListener(v -> {
-            try {
-                Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot"});
-            } catch (Exception e) {
-                Toast.makeText(this, "Se requiere root", Toast.LENGTH_SHORT).show();
-            }
-            return true;
-        });
-        findViewById(R.id.fab_volume).setOnClickListener(v -> {
-            abriendoApp = true;
-            startActivity(new Intent(this, VolumeActivity.class));
-        });
+        findViewById(R.id.fab_clear_apps).setOnClickListener(v -> liberarMemoria());
     }
 
     private void configurarIndicadoresEstado() {
@@ -223,19 +232,11 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Bluetooth → contactos rápidos
+        // Bluetooth (click) → contactos rápidos
         findViewById(R.id.indicador_bluetooth).setOnClickListener(
                 v -> contactsDialogHelper.mostrar());
 
-        findViewById(R.id.indicador_bluetooth).setOnLongClickListener(v -> {
-            // Mostrar diagnóstico en lugar de ajustes BT
-            String diag = btContactsManager.generarDiagnostico();
-            Log.d("BT_DIAG", diag);
-            // O mostrar en un AlertDialog
-            return true;
-        });
-
-        // Bluetooth largo → ajustes BT
+        // Long press → ajustes BT
         findViewById(R.id.indicador_bluetooth).setOnLongClickListener(v -> {
             abriendoApp = true;
             try {
@@ -245,6 +246,83 @@ public class MainActivity extends Activity {
             }
             return true;
         });
+    }
+
+    /**
+     * Long press en el mini reproductor → activa / desactiva color dinámico.
+     * El estado se guarda en SharedPreferences para sobrevivir reinicios.
+     */
+    private void configurarReproductor() {
+        findViewById(R.id.widget_reproductor).setOnLongClickListener(v -> {
+            modoColorDinamico = !modoColorDinamico;
+            prefs.edit().putBoolean(PREF_COLOR_DINAMICO, modoColorDinamico).apply();
+
+            if (modoColorDinamico) {
+                mostrarMensaje("Color dinámico activado — long press para desactivar");
+            } else {
+                mostrarMensaje("Color dinámico desactivado");
+                animarColorFondo(COLOR_BASE_FONDO); // vuelve al azul oscuro base
+            }
+            return true;
+        });
+    }
+
+    // ══════════════════════════════════════
+    //  COLOR DINÁMICO
+    // ══════════════════════════════════════
+
+    /**
+     * Anima el fondo del root_layout desde el color actual hasta colorDestino.
+     * Duración: 800ms. Usa ArgbEvaluator para interpolar correctamente ARGB.
+     */
+    private void animarColorFondo(int colorDestino) {
+        if (colorActualFondo == colorDestino) return;
+
+        ValueAnimator animator = ValueAnimator.ofObject(
+                new ArgbEvaluator(),
+                colorActualFondo,
+                colorDestino
+        );
+        animator.setDuration(800);
+        animator.addUpdateListener(anim ->
+                findViewById(R.id.root_layout).setBackgroundColor((int) anim.getAnimatedValue()));
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                colorActualFondo = colorDestino;
+            }
+        });
+        animator.start();
+    }
+
+    // ══════════════════════════════════════
+    //  LIBERAR MEMORIA
+    // ══════════════════════════════════════
+
+    /**
+     * Mata todos los procesos en background para liberar RAM.
+     * Requiere: android.permission.KILL_BACKGROUND_PROCESSES en el Manifest.
+     */
+    private void liberarMemoria() {
+        try {
+            ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            if (am == null) return;
+
+            List<ActivityManager.RunningAppProcessInfo> procesos = am.getRunningAppProcesses();
+            if (procesos == null) return;
+
+            int liberados = 0;
+            for (ActivityManager.RunningAppProcessInfo proceso : procesos) {
+                if (proceso.importance > ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                    am.killBackgroundProcesses(proceso.processName);
+                    liberados++;
+                }
+            }
+            mostrarMensaje("✓ " + liberados + " apps cerradas — memoria liberada");
+
+        } catch (Exception e) {
+            mostrarMensaje("Error al liberar memoria");
+        }
     }
 
     // ══════════════════════════════════════
@@ -288,8 +366,13 @@ public class MainActivity extends Activity {
         kioskManager.cancelarRetorno();
         shortcutManager.cargar();
         clockManager.actualizar();
+        permissionsManager.verificar();
         mediaWidgetManager.actualizar();
         aplicarTema();
+
+        // Mantener marquee activo al volver
+        TextView titulo = findViewById(R.id.reproductor_titulo);
+        if (titulo != null) titulo.setSelected(true);
     }
 
     @Override
@@ -299,12 +382,21 @@ public class MainActivity extends Activity {
         kioskManager.destruir();
         mediaWidgetManager.destruir();
         statusIndicatorManager.detener();
+        contactsDialogHelper.setOnAppOpenListener(null);
+
+        if (btNotifReceiver != null) btNotifReceiver.detener();
+
+        // Soltar referencias a vistas
+        textoReloj = null;
+        textoFecha = null;
+        botonTema  = null;
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         shortcutManager.procesarResultado(requestCode, resultCode, data);
+        contactsDialogHelper.procesarResultado(requestCode, resultCode, data);
     }
 
     // ══════════════════════════════════════
@@ -315,43 +407,9 @@ public class MainActivity extends Activity {
         Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show();
     }
 
-    private void intentarReboot() {
-        // Intento 1: PowerManager
-        try {
-            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-            pm.reboot(null);
-            return;
-        } catch (Exception ignored) {
-        }
-
-        // Intento 2: Broadcasts de fabricantes
-        String[] broadcasts = {
-                "android.intent.action.REBOOT",
-                "com.android.internal.app.RebootRequestReceiver",
-                "com.rk.action.REBOOT",        // Rockchip
-                "com.allwinner.action.REBOOT",  // Allwinner
-                "com.mediatek.action.REBOOT"    // MediaTek
-        };
-        for (String accion : broadcasts) {
-            try {
-                Intent i = new Intent(accion);
-                i.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-                sendBroadcast(i);
-                return;
-            } catch (Exception ignored) {
-            }
-        }
-
-        // Intento 3: Runtime sin su
-        try {
-            Runtime.getRuntime().exec(new String[]{"reboot"});
-            return;
-        } catch (Exception ignored) {
-        }
-
-        // Nada funcionó
-        Toast.makeText(this,
-                "Este dispositivo no permite reinicio desde apps",
-                Toast.LENGTH_LONG).show();
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 }

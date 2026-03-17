@@ -58,13 +58,15 @@
         android:id="@+id/boton_importar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="📱 Importar desde teléfono"
+        android:text="👤 Seleccionar de Google Contacts"
         android:textColor="#2979FF"
         android:textSize="14sp"
-        android:paddingTop="16dp"
-        android:paddingBottom="8dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"/>
+        android:gravity="center"
+        android:background="@drawable/system_item_bg"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"/>
 
     <LinearLayout
         android:layout_width="match_parent"

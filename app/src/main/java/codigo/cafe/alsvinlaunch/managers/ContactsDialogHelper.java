@@ -5,12 +5,12 @@ import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,24 +18,26 @@ import android.widget.Toast;
 import codigo.cafe.alsvinlaunch.R;
 import codigo.cafe.alsvinlaunch.util.ConstantesSistema;
 
+/**
+ * Diálogo de contactos rápidos (máx. 3).
+ *
+ * Llamadas vía ACTION_DIAL → HiveOS enruta por HFP al teléfono BT conectado.
+ * No requiere CALL_PHONE.
+ *
+ * Importar contactos vía picker nativo de Google Contacts.
+ * No requiere READ_CONTACTS.
+ */
 public class ContactsDialogHelper {
+
+    public static final int REQUEST_PICK_CONTACT = 2001;
 
     private static final int MAX_CONTACTOS = 3;
 
     private final Activity actividad;
     private final SharedPreferences prefs;
-    private final BluetoothContactsManager btContactsManager;
-    private OnAppOpenListener listener;
+    private OnAppOpenListener listenerApp;
 
-    // Probar la base de datos de contactos del sistema del carro
-    private static final String[] URIS_SISTEMA = {
-            // Contactos normales de Android (a veces el carro los sincroniza aquí)
-            "content://com.android.contacts/data/phones",
-            ContactsContract.CommonDataKinds.Phone.CONTENT_URI.toString(),
-            // HiveOS específico
-            "content://com.hive.contacts/phones",
-            "content://contacts/phones"
-    };
+    private int indicePendiente = -1;
 
     public interface OnAppOpenListener {
         void onAppOpening();
@@ -44,15 +46,17 @@ public class ContactsDialogHelper {
     public ContactsDialogHelper(Activity actividad, SharedPreferences prefs,
                                 BluetoothContactsManager btContactsManager) {
         this.actividad = actividad;
-        this.prefs = prefs;
-        this.btContactsManager = btContactsManager;
+        this.prefs     = prefs;
+        // btContactsManager no se usa — importamos vía picker nativo
     }
 
     public void setOnAppOpenListener(OnAppOpenListener listener) {
-        this.listener = listener;
+        this.listenerApp = listener;
     }
 
-    // ── Diálogo principal ──
+    // ──────────────────────────────────────────────
+    //  Diálogo principal
+    // ──────────────────────────────────────────────
 
     public void mostrar() {
         View vista = LayoutInflater.from(actividad)
@@ -86,7 +90,7 @@ public class ContactsDialogHelper {
         String numero = prefs.getString("contacto_numero_" + indice, null);
 
         LinearLayout grupoContacto = fila.findViewById(R.id.grupo_contacto);
-        TextView botonAgregar     = fila.findViewById(R.id.boton_agregar);
+        TextView botonAgregar      = fila.findViewById(R.id.boton_agregar);
 
         if (nombre != null && numero != null) {
             grupoContacto.setVisibility(View.VISIBLE);
@@ -120,7 +124,9 @@ public class ContactsDialogHelper {
         }
     }
 
-    // ── Diálogo agregar ──
+    // ──────────────────────────────────────────────
+    //  Diálogo agregar
+    // ──────────────────────────────────────────────
 
     private void mostrarDialogoAgregar(int indice) {
         View vista = LayoutInflater.from(actividad)
@@ -145,43 +151,109 @@ public class ContactsDialogHelper {
             String nombre = campoNombre.getText().toString().trim();
             String numero = campoNumero.getText().toString().trim();
             if (nombre.isEmpty() || numero.isEmpty()) {
-                Toast.makeText(actividad, "Completa ambos campos", Toast.LENGTH_SHORT).show();
+                Toast.makeText(actividad, "Completá ambos campos", Toast.LENGTH_SHORT).show();
                 return;
             }
-            prefs.edit()
-                    .putString("contacto_nombre_" + indice, nombre)
-                    .putString("contacto_numero_" + indice, numero)
-                    .apply();
-            Toast.makeText(actividad, "Contacto guardado", Toast.LENGTH_SHORT).show();
+            guardarContacto(indice, nombre, numero);
             dialogo.dismiss();
             mostrar();
         });
 
         vista.findViewById(R.id.boton_importar).setOnClickListener(v -> {
             dialogo.dismiss();
-            btContactsManager.mostrarSelectorContactos((nombre, numero) -> {
-                prefs.edit()
-                        .putString("contacto_nombre_" + indice, nombre)
-                        .putString("contacto_numero_" + indice, numero)
-                        .apply();
-                Toast.makeText(actividad, "Contacto importado: " + nombre,
-                        Toast.LENGTH_SHORT).show();
-                mostrar();
-            });
+            abrirPickerContactos(indice);
         });
 
         dialogo.show();
     }
 
-    // ── Llamadas ──
+    // ──────────────────────────────────────────────
+    //  Picker nativo de Google Contacts
+    // ──────────────────────────────────────────────
+
+    private void abrirPickerContactos(int indice) {
+        indicePendiente = indice;
+        if (listenerApp != null) listenerApp.onAppOpening();
+
+        Intent intent = new Intent(Intent.ACTION_PICK,
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
+        intent.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE);
+        intent.setPackage("com.google.android.contacts");
+
+        try {
+            actividad.startActivityForResult(intent, REQUEST_PICK_CONTACT);
+        } catch (Exception e) {
+            // Fallback: picker genérico si Google Contacts no está instalado
+            try {
+                Intent fallback = new Intent(Intent.ACTION_PICK,
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
+                actividad.startActivityForResult(fallback, REQUEST_PICK_CONTACT);
+            } catch (Exception ex) {
+                Toast.makeText(actividad,
+                        "No se pudo abrir Google Contacts", Toast.LENGTH_SHORT).show();
+                indicePendiente = -1;
+            }
+        }
+    }
+
+    /**
+     * Llamar desde MainActivity.onActivityResult():
+     *
+     *   contactsDialogHelper.procesarResultado(requestCode, resultCode, data);
+     */
+    public void procesarResultado(int requestCode, int resultCode, Intent data) {
+        if (requestCode != REQUEST_PICK_CONTACT) return;
+        if (resultCode != Activity.RESULT_OK || data == null || indicePendiente < 0) {
+            indicePendiente = -1;
+            return;
+        }
+
+        try {
+            Cursor cursor = actividad.getContentResolver().query(
+                    data.getData(),
+                    new String[]{
+                            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                            ContactsContract.CommonDataKinds.Phone.NUMBER
+                    },
+                    null, null, null
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                String nombre = cursor.getString(0);
+                String numero = cursor.getString(1);
+                cursor.close();
+
+                if (numero != null && !numero.trim().isEmpty()) {
+                    guardarContacto(indicePendiente, nombre, numero.trim());
+                    Toast.makeText(actividad,
+                            "Contacto guardado: " + nombre, Toast.LENGTH_SHORT).show();
+                    mostrar();
+                } else {
+                    Toast.makeText(actividad,
+                            "El contacto no tiene número", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                if (cursor != null) cursor.close();
+                Toast.makeText(actividad,
+                        "No se pudo leer el contacto", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            Toast.makeText(actividad,
+                    "Error al importar contacto", Toast.LENGTH_SHORT).show();
+        }
+
+        indicePendiente = -1;
+    }
+
+    // ──────────────────────────────────────────────
+    //  Llamadas vía HFP Bluetooth
+    // ──────────────────────────────────────────────
 
     private void realizarLlamada(String numero) {
+        if (listenerApp != null) listenerApp.onAppOpening();
         try {
-            if (listener != null) listener.onAppOpening();
-            Intent intent = new Intent(Intent.ACTION_CALL);
-            intent.setData(Uri.parse("tel:" + numero));
-            actividad.startActivity(intent);
-        } catch (SecurityException e) {
+            // ACTION_DIAL no requiere CALL_PHONE
+            // HiveOS intercepta y enruta por HFP al teléfono BT conectado
             Intent intent = new Intent(Intent.ACTION_DIAL);
             intent.setData(Uri.parse("tel:" + numero));
             actividad.startActivity(intent);
@@ -194,9 +266,20 @@ public class ContactsDialogHelper {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 actividad.startActivity(intent);
             } catch (Exception ex) {
-                Toast.makeText(actividad, "No se pudo realizar la llamada",
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(actividad,
+                        "No se pudo abrir el marcador", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    // ──────────────────────────────────────────────
+    //  Utilidades
+    // ──────────────────────────────────────────────
+
+    private void guardarContacto(int indice, String nombre, String numero) {
+        prefs.edit()
+                .putString("contacto_nombre_" + indice, nombre)
+                .putString("contacto_numero_" + indice, numero)
+                .apply();
     }
 }

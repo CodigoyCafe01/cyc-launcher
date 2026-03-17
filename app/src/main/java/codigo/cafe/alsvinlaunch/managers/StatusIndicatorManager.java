@@ -26,7 +26,14 @@ import codigo.cafe.alsvinlaunch.R;
 
 /**
  * Gestiona los indicadores de estado WiFi y Bluetooth.
- * Usa BroadcastReceivers para reaccionar en tiempo real + Timer como respaldo.
+ *
+ * Fixes respecto a la versión anterior:
+ *  - BT binder null: se obtiene BluetoothAdapter vía BluetoothManager en lugar de
+ *    getDefaultAdapter(), que en HiveOS devuelve un adaptador con binder nulo.
+ *    Además se añade un guard explícito antes de cualquier llamada al adaptador.
+ *  - Timer de respaldo ahora solo refresca WiFi. BT tiene su propio BroadcastReceiver
+ *    y no necesita polling — llamarlo cada 10 s era la fuente del spam en logcat.
+ *  - btAdapterDisponible: flag que evita reintentar si el sistema no tiene BT real.
  */
 public class StatusIndicatorManager {
 
@@ -46,7 +53,11 @@ public class StatusIndicatorManager {
     private BroadcastReceiver receptorBluetooth;
 
     // Caché del último nombre BT conocido (evita parpadeos)
-    private String ultimoNombreBt = null;
+    private String  ultimoNombreBt    = null;
+    // Flag: si el sistema no tiene BT funcional, no seguir intentando
+    private boolean btAdapterDisponible = true;
+    // Referencia al adaptador obtenido una sola vez via BluetoothManager
+    private BluetoothAdapter btAdapter = null;
 
     public StatusIndicatorManager(Activity actividad) {
         this.actividad      = actividad;
@@ -54,6 +65,9 @@ public class StatusIndicatorManager {
         this.textoWifi      = actividad.findViewById(R.id.texto_wifi);
         this.iconoBluetooth = actividad.findViewById(R.id.icono_bluetooth);
         this.textoBluetooth = actividad.findViewById(R.id.texto_bluetooth);
+
+        // Obtener adaptador una sola vez — más seguro que getDefaultAdapter() en HiveOS
+        inicializarBluetoothAdapter();
     }
 
     // ══════════════════════════════════════
@@ -65,7 +79,6 @@ public class StatusIndicatorManager {
         registrarReceptorBluetooth();
         iniciarTimerRespaldo();
 
-        // Estado inmediato al arrancar
         actualizarWifi();
         actualizarBluetooth();
     }
@@ -76,9 +89,36 @@ public class StatusIndicatorManager {
             temporizador = null;
         }
         try {
-            if (receptorWifi != null)      actividad.unregisterReceiver(receptorWifi);
+            if (receptorWifi      != null) actividad.unregisterReceiver(receptorWifi);
             if (receptorBluetooth != null) actividad.unregisterReceiver(receptorBluetooth);
         } catch (IllegalArgumentException ignored) {}
+    }
+
+    // ══════════════════════════════════════
+    //  BLUETOOTH — inicialización segura
+    // ══════════════════════════════════════
+
+    /**
+     * Obtiene el adaptador a través de BluetoothManager (API 18+).
+     * En HiveOS/Android 6, getDefaultAdapter() puede devolver una instancia
+     * con binder nulo que lanza excepciones en cada llamada. BluetoothManager
+     * es la vía recomendada y falla de forma limpia si BT no está disponible.
+     */
+    private void inicializarBluetoothAdapter() {
+        try {
+            BluetoothManager btManager = (BluetoothManager)
+                    actividad.getSystemService(Context.BLUETOOTH_SERVICE);
+            if (btManager != null) {
+                btAdapter = btManager.getAdapter();
+            }
+            if (btAdapter == null) {
+                // El dispositivo no tiene BT o el servicio no está disponible aún
+                btAdapterDisponible = false;
+            }
+        } catch (Exception e) {
+            btAdapter = null;
+            btAdapterDisponible = false;
+        }
     }
 
     // ══════════════════════════════════════
@@ -87,17 +127,14 @@ public class StatusIndicatorManager {
 
     private void registrarReceptorWifi() {
         receptorWifi = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context ctx, Intent intent) {
+            @Override public void onReceive(Context ctx, Intent intent) {
                 actualizarWifi();
             }
         };
-
         IntentFilter filtro = new IntentFilter();
-        filtro.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION); // cambia de red / SSID nuevo
-        filtro.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);    // WiFi on/off
-        filtro.addAction(ConnectivityManager.CONNECTIVITY_ACTION);  // conectado/desconectado
-
+        filtro.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        filtro.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        filtro.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         actividad.registerReceiver(receptorWifi, filtro);
     }
 
@@ -107,18 +144,32 @@ public class StatusIndicatorManager {
             public void onReceive(Context ctx, Intent intent) {
                 String accion = intent.getAction();
 
-                if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(accion)) {
-                    // Capturar nombre directamente del evento — el más fiable
+                if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(accion)) {
+                    int estado = intent.getIntExtra(
+                            BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                    if (estado == BluetoothAdapter.STATE_ON) {
+                        // BT acaba de encenderse — puede que btAdapter estuviera nulo
+                        if (btAdapter == null) inicializarBluetoothAdapter();
+                        actualizarBluetooth();
+                    } else if (estado == BluetoothAdapter.STATE_OFF
+                            || estado == BluetoothAdapter.STATE_TURNING_OFF) {
+                        ultimoNombreBt = null;
+                        setBtEstado(R.drawable.ic_bt_off, "BT Off", COLOR_INACTIVO);
+                    }
+
+                } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(accion)) {
                     BluetoothDevice device =
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    if (device != null && device.getName() != null && !device.getName().isEmpty()) {
+                    if (device != null && device.getName() != null
+                            && !device.getName().isEmpty()) {
                         ultimoNombreBt = device.getName();
                     }
+                    actualizarBluetooth();
+
                 } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(accion)) {
                     ultimoNombreBt = null;
+                    actualizarBluetooth();
                 }
-
-                actualizarBluetooth();
             }
         };
 
@@ -126,19 +177,20 @@ public class StatusIndicatorManager {
         filtro.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         filtro.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         filtro.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-
         actividad.registerReceiver(receptorBluetooth, filtro);
     }
 
+    /**
+     * FIX CLAVE: el timer solo refresca WiFi.
+     * BT tiene su BroadcastReceiver y no necesita polling — era la causa
+     * del "Bluetooth binder is null" repetido cada 10 s en logcat.
+     */
     private void iniciarTimerRespaldo() {
         temporizador = new Timer();
         temporizador.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                actividad.runOnUiThread(() -> {
-                    actualizarWifi();
-                    actualizarBluetooth();
-                });
+            @Override public void run() {
+                actividad.runOnUiThread(() -> actualizarWifi());
+                // BT deliberadamente excluido del timer
             }
         }, INTERVALO_RESPALDO, INTERVALO_RESPALDO);
     }
@@ -157,7 +209,6 @@ public class StatusIndicatorManager {
                 return;
             }
 
-            // Verificar conectividad real, no solo que WiFi esté encendido
             ConnectivityManager cm = (ConnectivityManager)
                     actividad.getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo netInfo = cm != null ? cm.getActiveNetworkInfo() : null;
@@ -177,12 +228,9 @@ public class StatusIndicatorManager {
                 boolean ssidValido = ssid != null
                         && !ssid.isEmpty()
                         && !ssid.equals("<unknown ssid>");
-
-                setWifiEstado(
-                        R.drawable.ic_wifi_on,
+                setWifiEstado(R.drawable.ic_wifi_on,
                         ssidValido ? ssid : "Conectado",
-                        COLOR_WIFI_CONECTADO
-                );
+                        COLOR_WIFI_CONECTADO);
             } else {
                 setWifiEstado(R.drawable.ic_wifi_off, "Sin red", COLOR_INACTIVO);
             }
@@ -202,10 +250,26 @@ public class StatusIndicatorManager {
     // ══════════════════════════════════════
 
     public void actualizarBluetooth() {
+        // Guard: si sabemos que BT no está disponible, no intentar nada
+        if (!btAdapterDisponible || btAdapter == null) {
+            setBtEstado(R.drawable.ic_bt_off, "BT Off", COLOR_INACTIVO);
+            return;
+        }
+
         try {
-            BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-            if (btAdapter != null && btAdapter.isEnabled()) {
-                String nombre = obtenerDispositivoConectado(btAdapter);
+            // Guard adicional: verificar que isEnabled() no lance excepción
+            boolean habilitado;
+            try {
+                habilitado = btAdapter.isEnabled();
+            } catch (Exception e) {
+                // Binder nulo u otro error del sistema — no reintentar
+                btAdapterDisponible = false;
+                setBtEstado(R.drawable.ic_bt_off, "BT Off", COLOR_INACTIVO);
+                return;
+            }
+
+            if (habilitado) {
+                String nombre = obtenerDispositivoConectado();
                 iconoBluetooth.setImageResource(R.drawable.ic_bt_on);
                 textoBluetooth.setText(nombre != null ? nombre : "BT On");
                 textoBluetooth.setTextColor(COLOR_BT_ACTIVO);
@@ -224,12 +288,13 @@ public class StatusIndicatorManager {
         textoBluetooth.setTextColor(color);
     }
 
-    private String obtenerDispositivoConectado(BluetoothAdapter btAdapter) {
+    private String obtenerDispositivoConectado() {
+        if (btAdapter == null) return null;
+
         try {
-            // ── Método 1: BluetoothManager oficial (API 18+) ──
+            // ── Método 1: BluetoothManager oficial ──
             BluetoothManager btManager = (BluetoothManager)
                     actividad.getSystemService(Context.BLUETOOTH_SERVICE);
-
             if (btManager != null) {
                 int[] perfiles = {
                         BluetoothProfile.A2DP,
@@ -274,7 +339,6 @@ public class StatusIndicatorManager {
                             .getMethod("getProfileConnectionState", int.class);
                     int estado = (int) getState.invoke(btAdapter, perfil);
                     if (estado == BluetoothProfile.STATE_CONNECTED) {
-                        // Hay conexión pero no logramos el nombre → devolver caché
                         return ultimoNombreBt != null ? ultimoNombreBt : "Conectado";
                     }
                 } catch (Exception ignored) {}

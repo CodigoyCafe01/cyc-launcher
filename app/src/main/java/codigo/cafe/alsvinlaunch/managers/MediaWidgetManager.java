@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
@@ -16,91 +17,341 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.palette.graphics.Palette;
+
 import java.util.List;
 
 import codigo.cafe.alsvinlaunch.R;
 import codigo.cafe.alsvinlaunch.services.ServicioNotificaciones;
 
 /**
- * Gestiona el widget de reproductor multimedia (play/pause, anterior, siguiente).
+ * Gestiona el widget de reproductor multimedia.
+ *
+ * Cambios respecto a la versión anterior:
+ *  - OnActiveSessionsChangedListener: detecta nuevas sesiones en caliente.
+ *  - MediaController.Callback: actualiza play/pausa/metadata sin polling.
+ *  - Artwork del álbum: muestra portada desde MediaMetadata.
+ *  - Marquee: título scrollea automáticamente cuando es largo.
+ *  - OnColorExtraidoListener: extrae color dominante del artwork con Palette
+ *    para que MainActivity anime el fondo del launcher.
+ *  - destruir() libera todos los recursos.
  */
 public class MediaWidgetManager {
+
+    // ──────────────────────────────────────────────
+    //  Interface — color dinámico
+    // ──────────────────────────────────────────────
+
+    public interface OnColorExtraidoListener {
+        /** Se llama cuando hay artwork y se extrae el color dominante. */
+        void onColor(int colorDominante);
+        /** Se llama cuando no hay música o no hay artwork. */
+        void onSinColor();
+    }
+
+    // ──────────────────────────────────────────────
+    //  Campos
+    // ──────────────────────────────────────────────
 
     private final Activity actividad;
     private final LinearLayout widgetReproductor;
     private final TextView reproductorTitulo;
     private final TextView reproductorArtista;
+    private final ImageView reproductorIcono;
     private final ImageView botonPlayPausa;
     private final ImageView botonAnterior;
     private final ImageView botonSiguiente;
 
+    private MediaSessionManager msm;
     private MediaController controladorActual;
-    private boolean estaReproduciendo = false;
+    private MediaController.Callback callbackControlador;
+    private MediaSessionManager.OnActiveSessionsChangedListener listenerSesiones;
     private BroadcastReceiver receptorMedia;
+
+    private OnColorExtraidoListener colorListener;
+
+    private boolean estaReproduciendo = false;
+
+    // ──────────────────────────────────────────────
+    //  Constructor
+    // ──────────────────────────────────────────────
 
     public MediaWidgetManager(Activity actividad) {
         this.actividad = actividad;
-        this.widgetReproductor = (LinearLayout) actividad.findViewById(R.id.widget_reproductor);
-        this.reproductorTitulo = (TextView) actividad.findViewById(R.id.reproductor_titulo);
-        this.reproductorArtista = (TextView) actividad.findViewById(R.id.reproductor_artista);
-        this.botonPlayPausa = (ImageView) actividad.findViewById(R.id.btn_play_pausa);
-        this.botonAnterior = (ImageView) actividad.findViewById(R.id.btn_anterior);
-        this.botonSiguiente = (ImageView) actividad.findViewById(R.id.btn_siguiente);
+        widgetReproductor  = actividad.findViewById(R.id.widget_reproductor);
+        reproductorTitulo  = actividad.findViewById(R.id.reproductor_titulo);
+        reproductorArtista = actividad.findViewById(R.id.reproductor_artista);
+        reproductorIcono   = actividad.findViewById(R.id.reproductor_icono);
+        botonPlayPausa     = actividad.findViewById(R.id.btn_play_pausa);
+        botonAnterior      = actividad.findViewById(R.id.btn_anterior);
+        botonSiguiente     = actividad.findViewById(R.id.btn_siguiente);
+
+        msm = (MediaSessionManager) actividad.getSystemService(Context.MEDIA_SESSION_SERVICE);
     }
 
-    public void iniciar() {
-        botonPlayPausa.setOnClickListener(v -> controlarReproduccion());
-        botonAnterior.setOnClickListener(v -> {
-            if (controladorActual != null) controladorActual.getTransportControls().skipToPrevious();
-        });
-        botonSiguiente.setOnClickListener(v -> {
-            if (controladorActual != null) controladorActual.getTransportControls().skipToNext();
-        });
+    // ──────────────────────────────────────────────
+    //  API pública
+    // ──────────────────────────────────────────────
 
-        registrarReceptor();
-        verificarPermisoNotificaciones();
+    public void setOnColorExtraidoListener(OnColorExtraidoListener listener) {
+        this.colorListener = listener;
+    }
+
+    // ──────────────────────────────────────────────
+    //  Ciclo de vida público
+    // ──────────────────────────────────────────────
+
+    public void iniciar() {
+        configurarBotones();
+        registrarReceptorBroadcast();
+
+        if (!tienePermisoNotificaciones()) {
+            Toast.makeText(actividad,
+                    "Activa AlsvinLauncher en Ajustes → Seguridad → Acceso a notificaciones",
+                    Toast.LENGTH_LONG).show();
+            widgetReproductor.setVisibility(View.GONE);
+            return;
+        }
+
+        registrarListenerSesiones();
         actualizar();
     }
 
+    /** Llamado desde onResume — refresca estado si cambió con la Activity en pausa. */
     public void actualizar() {
+        if (!tienePermisoNotificaciones()) return;
         try {
-            MediaSessionManager msm = (MediaSessionManager)
-                    actividad.getSystemService(Context.MEDIA_SESSION_SERVICE);
-            List<MediaController> controladores = msm.getActiveSessions(
-                    new ComponentName(actividad, ServicioNotificaciones.class));
+            ComponentName cn = new ComponentName(actividad, ServicioNotificaciones.class);
+            List<MediaController> controladores = msm.getActiveSessions(cn);
 
             if (!controladores.isEmpty()) {
-                controladorActual = controladores.get(0);
-                MediaMetadata metadata = controladorActual.getMetadata();
-                PlaybackState estado = controladorActual.getPlaybackState();
-
-                if (metadata != null) {
-                    String titulo = metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
-                    String artista = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
-                    estaReproduciendo = estado != null &&
-                            estado.getState() == PlaybackState.STATE_PLAYING;
-
-                    if (titulo != null && !titulo.isEmpty()) {
-                        mostrarWidget(titulo, artista);
-                        return;
-                    }
-                }
+                adjuntarControlador(controladores.get(0));
+            } else {
+                limpiarControlador();
             }
-            controladorActual = null;
-            widgetReproductor.setVisibility(View.GONE);
         } catch (Exception e) {
-            widgetReproductor.setVisibility(View.GONE);
+            limpiarControlador();
         }
     }
 
     public void destruir() {
+        // 1. BroadcastReceiver
         if (receptorMedia != null) {
-            actividad.unregisterReceiver(receptorMedia);
+            try { actividad.unregisterReceiver(receptorMedia); } catch (Exception ignored) {}
             receptorMedia = null;
+        }
+        // 2. Listener de sesiones activas
+        if (listenerSesiones != null && msm != null) {
+            try { msm.removeOnActiveSessionsChangedListener(listenerSesiones); } catch (Exception ignored) {}
+            listenerSesiones = null;
+        }
+        // 3. Callback del controlador actual
+        desconectarCallback();
+        controladorActual = null;
+        colorListener     = null;
+        msm               = null;
+    }
+
+    // ──────────────────────────────────────────────
+    //  Configuración interna
+    // ──────────────────────────────────────────────
+
+    private void configurarBotones() {
+        botonPlayPausa.setOnClickListener(v -> controlarReproduccion());
+        botonAnterior.setOnClickListener(v -> {
+            if (controladorActual != null)
+                controladorActual.getTransportControls().skipToPrevious();
+        });
+        botonSiguiente.setOnClickListener(v -> {
+            if (controladorActual != null)
+                controladorActual.getTransportControls().skipToNext();
+        });
+    }
+
+    /**
+     * Escucha nuevas sesiones que aparezcan DESPUÉS de que el launcher arrancó.
+     */
+    private void registrarListenerSesiones() {
+        ComponentName cn = new ComponentName(actividad, ServicioNotificaciones.class);
+        listenerSesiones = controllers -> {
+            actividad.runOnUiThread(() -> {
+                if (controllers != null && !controllers.isEmpty()) {
+                    adjuntarControlador(controllers.get(0));
+                } else {
+                    limpiarControlador();
+                }
+            });
+        };
+        try {
+            msm.addOnActiveSessionsChangedListener(listenerSesiones, cn);
+        } catch (Exception e) {
+            listenerSesiones = null;
         }
     }
 
-    // ── Privados ──
+    /**
+     * BroadcastReceiver como canal secundario (enviado por ServicioNotificaciones).
+     * Garantiza compatibilidad con Android 6 donde las APIs de sesión son limitadas.
+     */
+    private void registrarReceptorBroadcast() {
+        receptorMedia = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String titulo         = intent.getStringExtra("titulo");
+                String artista        = intent.getStringExtra("artista");
+                boolean reproduciendo = intent.getBooleanExtra("reproduciendo", false);
+
+                if (titulo != null && !titulo.isEmpty()) {
+                    estaReproduciendo = reproduciendo;
+
+                    // Intentar adjuntar controlador si aún no tenemos uno
+                    if (controladorActual == null && tienePermisoNotificaciones()) {
+                        try {
+                            ComponentName cn = new ComponentName(actividad, ServicioNotificaciones.class);
+                            List<MediaController> cs = msm.getActiveSessions(cn);
+                            if (!cs.isEmpty()) adjuntarControlador(cs.get(0));
+                        } catch (Exception ignored) {}
+                    }
+
+                    mostrarWidget(titulo, artista);
+                } else {
+                    limpiarControlador();
+                }
+            }
+        };
+        actividad.registerReceiver(receptorMedia,
+                new IntentFilter(ServicioNotificaciones.ACCION_MEDIA_CAMBIO));
+    }
+
+    // ──────────────────────────────────────────────
+    //  Gestión del controlador
+    // ──────────────────────────────────────────────
+
+    private void adjuntarControlador(MediaController nuevo) {
+        if (controladorActual != null &&
+                controladorActual.getSessionToken().equals(nuevo.getSessionToken())) {
+            refrescarDesdeControlador();
+            return;
+        }
+
+        desconectarCallback();
+        controladorActual = nuevo;
+
+        callbackControlador = new MediaController.Callback() {
+            @Override
+            public void onMetadataChanged(MediaMetadata metadata) {
+                actividad.runOnUiThread(() -> refrescarDesdeControlador());
+            }
+            @Override
+            public void onPlaybackStateChanged(PlaybackState state) {
+                actividad.runOnUiThread(() -> {
+                    estaReproduciendo = state != null &&
+                            state.getState() == PlaybackState.STATE_PLAYING;
+                    botonPlayPausa.setImageResource(
+                            estaReproduciendo ? R.drawable.ic_pausa : R.drawable.ic_play);
+                });
+            }
+            @Override
+            public void onSessionDestroyed() {
+                actividad.runOnUiThread(() -> limpiarControlador());
+            }
+        };
+        controladorActual.registerCallback(callbackControlador);
+        refrescarDesdeControlador();
+    }
+
+    private void desconectarCallback() {
+        if (controladorActual != null && callbackControlador != null) {
+            try { controladorActual.unregisterCallback(callbackControlador); } catch (Exception ignored) {}
+        }
+        callbackControlador = null;
+    }
+
+    private void refrescarDesdeControlador() {
+        if (controladorActual == null) { limpiarControlador(); return; }
+
+        MediaMetadata metadata = controladorActual.getMetadata();
+        PlaybackState estado   = controladorActual.getPlaybackState();
+
+        if (metadata == null) { limpiarControlador(); return; }
+
+        String titulo  = metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
+        String artista = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
+
+        estaReproduciendo = estado != null &&
+                estado.getState() == PlaybackState.STATE_PLAYING;
+
+        // ── Artwork + color dinámico ──────────────────────────────────────────
+        Bitmap bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+        if (bitmap == null)
+            bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
+
+        if (bitmap != null) {
+            reproductorIcono.setImageBitmap(bitmap);
+            extraerColor(bitmap);
+        } else {
+            reproductorIcono.setImageResource(R.drawable.ic_music);
+            if (colorListener != null) colorListener.onSinColor();
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        if (titulo != null && !titulo.isEmpty()) {
+            mostrarWidget(titulo, artista);
+        } else {
+            limpiarControlador();
+        }
+    }
+
+    private void limpiarControlador() {
+        desconectarCallback();
+        controladorActual = null;
+        estaReproduciendo = false;
+        widgetReproductor.setVisibility(View.GONE);
+        if (colorListener != null) colorListener.onSinColor();
+    }
+
+    // ──────────────────────────────────────────────
+    //  Color dinámico (Palette)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Extrae el color dominante oscuro del bitmap en background thread.
+     * Prioridad: DarkVibrant → DarkMuted → color base del launcher.
+     */
+    private void extraerColor(Bitmap bitmap) {
+        if (colorListener == null) return;
+        Palette.from(bitmap).generate(palette -> {
+            if (palette == null) {
+                actividad.runOnUiThread(() -> colorListener.onSinColor());
+                return;
+            }
+            // DarkVibrant es el más vistoso, DarkMuted como fallback
+            int color = palette.getDarkVibrantColor(
+                    palette.getDarkMutedColor(0xFF1A1A2E));
+            actividad.runOnUiThread(() -> colorListener.onColor(color));
+        });
+    }
+
+    // ──────────────────────────────────────────────
+    //  UI
+    // ──────────────────────────────────────────────
+
+    private void mostrarWidget(String titulo, String artista) {
+        widgetReproductor.setVisibility(View.VISIBLE);
+
+        reproductorTitulo.setText(titulo);
+        reproductorTitulo.setSelected(true); // activa marquee scroll
+
+        reproductorArtista.setText(artista != null ? artista : "");
+
+        botonPlayPausa.setImageResource(
+                estaReproduciendo ? R.drawable.ic_pausa : R.drawable.ic_play);
+
+        View.OnClickListener abrirApp = v -> abrirAppReproductora();
+        widgetReproductor.setOnClickListener(abrirApp);
+        reproductorTitulo.setOnClickListener(abrirApp);
+        reproductorArtista.setOnClickListener(abrirApp);
+    }
 
     private void controlarReproduccion() {
         if (controladorActual == null) return;
@@ -111,41 +362,6 @@ public class MediaWidgetManager {
         }
     }
 
-    private void registrarReceptor() {
-        receptorMedia = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String titulo = intent.getStringExtra("titulo");
-                String artista = intent.getStringExtra("artista");
-                boolean reproduciendo = intent.getBooleanExtra("reproduciendo", false);
-
-                if (titulo != null && !titulo.isEmpty()) {
-                    estaReproduciendo = reproduciendo;
-                    mostrarWidget(titulo, artista);
-                } else {
-                    widgetReproductor.setVisibility(View.GONE);
-                }
-            }
-        };
-        actividad.registerReceiver(receptorMedia,
-                new IntentFilter(ServicioNotificaciones.ACCION_MEDIA_CAMBIO));
-    }
-
-    // En mostrarWidget(), después de setVisibility(View.VISIBLE):
-    private void mostrarWidget(String titulo, String artista) {
-        widgetReproductor.setVisibility(View.VISIBLE);
-        reproductorTitulo.setText(titulo);
-        reproductorArtista.setText(artista != null ? artista : "");
-        botonPlayPausa.setImageResource(
-                estaReproduciendo ? R.drawable.ic_pausa : R.drawable.ic_play);
-
-        // ── NUEVO: tocar título/artista abre la app reproductora ──
-        View.OnClickListener abrirApp = v -> abrirAppReproductora();
-        reproductorTitulo.setOnClickListener(abrirApp);
-        reproductorArtista.setOnClickListener(abrirApp);
-        widgetReproductor.setOnClickListener(abrirApp); // toda la tarjeta también
-    }
-
     private void abrirAppReproductora() {
         if (controladorActual == null) return;
         try {
@@ -153,32 +369,22 @@ public class MediaWidgetManager {
             if (intent != null) {
                 intent.send();
             } else {
-                // Fallback: abrir por nombre de paquete
                 String paquete = controladorActual.getPackageName();
-                Intent i = actividad.getPackageManager()
-                        .getLaunchIntentForPackage(paquete);
+                Intent i = actividad.getPackageManager().getLaunchIntentForPackage(paquete);
                 if (i != null) actividad.startActivity(i);
             }
         } catch (Exception e) {
             Toast.makeText(actividad, "No se pudo abrir la app", Toast.LENGTH_SHORT).show();
         }
     }
-    private void verificarPermisoNotificaciones() {
-        String servicioActivo = android.provider.Settings.Secure.getString(
+
+    // ──────────────────────────────────────────────
+    //  Utilidades
+    // ──────────────────────────────────────────────
+
+    private boolean tienePermisoNotificaciones() {
+        String activos = android.provider.Settings.Secure.getString(
                 actividad.getContentResolver(), "enabled_notification_listeners");
-
-        if (servicioActivo != null && servicioActivo.contains(actividad.getPackageName())) return;
-
-        Toast.makeText(actividad, "Activa AlsvinLauncher en la lista", Toast.LENGTH_SHORT).show();
-        try {
-            actividad.startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
-        } catch (Exception e) {
-            try {
-                actividad.startActivity(new Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS));
-            } catch (Exception ex) {
-                Toast.makeText(actividad,
-                        "Ve a Ajustes → Seguridad → Acceso a notificaciones", Toast.LENGTH_SHORT).show();
-            }
-        }
+        return activos != null && activos.contains(actividad.getPackageName());
     }
 }

@@ -19,7 +19,6 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <!-- Botón tema - izquierda -->
             <ImageView
                 android:id="@+id/btn_theme_toggle"
                 android:layout_width="40dp"
@@ -28,6 +27,34 @@
                 android:padding="6dp"
                 android:clickable="true"
                 android:focusable="true" />
+
+            <LinearLayout
+                android:id="@+id/badge_permisos"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/shortcut_bg"
+                android:paddingStart="10dp"
+                android:paddingEnd="12dp"
+                android:layout_marginStart="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@android:drawable/ic_dialog_alert" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Permisos"
+                    android:textColor="#FFC107"
+                    android:textSize="11sp"
+                    android:layout_marginStart="5dp" />
+            </LinearLayout>
 
             <!-- Indicador WiFi -->
             <LinearLayout
@@ -95,18 +122,18 @@
                     android:maxWidth="120dp" />
             </LinearLayout>
 
-            <!-- Espacio flexible -->
             <View
                 android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_weight="1" />
+
             <LinearLayout
-                android:id="@+id/fab_volume"
+                android:id="@+id/fab_clear_apps"
+                android:background="@drawable/fab_bg_clear"
                 android:layout_width="50dp"
                 android:layout_height="48dp"
                 android:orientation="horizontal"
                 android:gravity="center"
-                android:background="@drawable/fab_bg"
                 android:paddingStart="10dp"
                 android:paddingEnd="10dp"
                 android:layout_marginEnd="8dp"
@@ -117,46 +144,7 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@drawable/ic_volume" />
-            </LinearLayout>
-            <!-- Botón reiniciar - junto al botón sistema -->
-            <LinearLayout
-                android:id="@+id/fab_reboot"
-                android:layout_width="50dp"
-                android:layout_height="48dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:background="@drawable/fab_bg"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:layout_marginEnd="8dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:elevation="6dp">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_reboot" />
-            </LinearLayout>
-            <!-- Botón sistema - derecha -->
-            <LinearLayout
-                android:id="@+id/fab_system"
-                android:layout_width="50dp"
-                android:layout_height="48dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:background="@drawable/fab_bg"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:elevation="6dp">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_car" />
+                    android:src="@drawable/ic_clear_apps" />
             </LinearLayout>
         </LinearLayout>
 
@@ -169,9 +157,68 @@
             android:gravity="center"
             android:paddingBottom="10dp">
 
-            <!-- Reloj (este sí es clickeable) -->
+            <!-- <LinearLayout
+               android:id="@+id/notif_panel_container"
+               android:visibility="invisible"
+               android:layout_width="280dp"
+               android:layout_height="wrap_content"
+               android:layout_gravity="bottom|start"
+               android:layout_marginStart="16dp"
+               android:layout_marginBottom="16dp"
+               android:orientation="vertical"
+               android:background="@drawable/shortcut_bg"
+               android:elevation="4dp">
 
-            <!-- Mini reproductor (separado del reloj) -->
+              Header notificaciones
+               <LinearLayout
+                   android:layout_width="match_parent"
+                   android:layout_height="36dp"
+                   android:orientation="horizontal"
+                   android:gravity="center_vertical"
+                   android:paddingStart="12dp"
+                   android:paddingEnd="4dp"
+
+                   android:background="#1AFFFFFF">
+
+                   <ImageView
+                       android:layout_width="14dp"
+                       android:layout_height="14dp"
+                       android:src="@drawable/ic_bt_off"
+                       android:alpha="0.6" />
+
+                   <TextView
+                       android:layout_width="0dp"
+                       android:layout_height="wrap_content"
+                       android:layout_weight="1"
+                       android:text="Notificaciones"
+                       android:textColor="#808080"
+                       android:textSize="10sp"
+                       android:letterSpacing="0.08"
+                       android:layout_marginStart="6dp" />
+-->
+                    <!-- Botón limpiar
+                    <TextView
+                        android:id="@+id/btn_limpiar_notifs"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:text="✕"
+                        android:textColor="#505050"
+                        android:textSize="13sp"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>-->
+
+                <!-- Lista dinámica — NotifPanelManager llena este contenedor
+                <LinearLayout
+                    android:id="@+id/notif_panel_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone" />
+
+            </LinearLayout> -->
+
             <LinearLayout
                 android:id="@+id/clock_section"
                 android:layout_width="0dp"
@@ -209,6 +256,7 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Mini reproductor -->
             <LinearLayout
                 android:id="@+id/widget_reproductor"
                 android:foreground="?android:attr/selectableItemBackground"
@@ -217,22 +265,21 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/shortcut_bg"
-                android:padding="14dp"
-                android:layout_marginEnd="30dp"
+                android:padding="15dp"
+                android:layout_marginTop="30dp"
+                android:layout_marginEnd="40dp"
                 android:layout_marginBottom="30dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:visibility="gone">
+                android:visibility="visible">
 
-                <!-- Icono de música -->
                 <ImageView
                     android:id="@+id/reproductor_icono"
                     android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_height="60dp"
                     android:src="@drawable/ic_music"
                     android:scaleType="fitCenter" />
 
-                <!-- Info de la canción -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -243,14 +290,19 @@
 
                     <TextView
                         android:id="@+id/reproductor_titulo"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text=""
                         android:textColor="#FFFFFF"
-                        android:textSize="14sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"
                         android:maxLines="1"
-                        android:ellipsize="end" />
+                        android:ellipsize="marquee"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:scrollHorizontally="true"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true"
+                        android:singleLine="true" />
 
                     <TextView
                         android:id="@+id/reproductor_artista"
@@ -264,11 +316,10 @@
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
 
-                <!-- Controles -->
                 <ImageView
                     android:id="@+id/btn_anterior"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:src="@drawable/ic_anterior"
                     android:padding="4dp"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
@@ -277,8 +328,8 @@
 
                 <ImageView
                     android:id="@+id/btn_play_pausa"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:src="@drawable/ic_play"
                     android:padding="4dp"
                     android:layout_marginStart="6dp"
@@ -289,8 +340,8 @@
 
                 <ImageView
                     android:id="@+id/btn_siguiente"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:src="@drawable/ic_siguiente"
                     android:padding="4dp"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
@@ -298,6 +349,7 @@
                     android:focusable="true" />
             </LinearLayout>
         </LinearLayout>
+
         <!-- Shortcuts -->
         <LinearLayout
             android:id="@+id/shortcuts_container"
@@ -494,20 +546,25 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         PANEL NOTIFICACIONES BT (Notisvin)
+         Posición: esquina inferior izquierda, flotante sobre el layout.
+         El contenedor se oculta solo cuando no hay notificaciones.
+         ═══════════════════════════════════════════════════════════════ -->
+
 
     <!-- Panel de sistema (oculto por defecto) -->
-
-        <LinearLayout
-            android:id="@+id/system_panel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_marginEnd="20dp"
-            android:layout_marginBottom="72dp"
-            android:background="@drawable/system_panel_bg"
-            android:elevation="8dp"
-            android:orientation="vertical"
-            android:padding="12dp"
-            android:visibility="gone"></LinearLayout>
+    <LinearLayout
+        android:id="@+id/system_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="72dp"
+        android:background="@drawable/system_panel_bg"
+        android:elevation="8dp"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="gone" />
 
 </FrameLayout>
