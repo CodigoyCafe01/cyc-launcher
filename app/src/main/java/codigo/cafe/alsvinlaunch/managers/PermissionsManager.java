@@ -1,20 +1,18 @@
 package codigo.cafe.alsvinlaunch.managers;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.provider.Settings;
 
-/**
- * Verifica y solicita los permisos del launcher.
- *
- * Permiso gestionado:
- *  - Notification Listener (widget de música)
- *
- * No hay permisos runtime — CALL_PHONE y READ_CONTACTS fueron eliminados
- * porque ACTION_DIAL no los requiere y el picker nativo maneja READ_CONTACTS.
- */
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 public class PermissionsManager {
+
+    public static final int REQUEST_LOCATION = 1001;
 
     private final Activity actividad;
     private OnPermisosListener listener;
@@ -40,14 +38,22 @@ public class PermissionsManager {
     //  API pública
     // ──────────────────────────────────────────────
 
-    /** Verificar y notificar. Llamar en onResume. */
     public void verificar() {
+        // Solicitar ubicación si no está concedido (necesario para SSID WiFi)
+        if (!tieneUbicacion()) {
+            ActivityCompat.requestPermissions(actividad,
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    },
+                    REQUEST_LOCATION);
+        }
+
         if (listener != null) {
             listener.onEstadoPermisos(tieneNotificationListener());
         }
     }
 
-    /** Muestra dialog si falta el Notification Listener. */
     public void mostrarDialogPermisosFaltantes() {
         if (tieneNotificationListener()) return;
 
@@ -69,6 +75,12 @@ public class PermissionsManager {
         String activos = Settings.Secure.getString(
                 actividad.getContentResolver(), "enabled_notification_listeners");
         return activos != null && activos.contains(actividad.getPackageName());
+    }
+
+    public boolean tieneUbicacion() {
+        return ContextCompat.checkSelfPermission(actividad,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     // ──────────────────────────────────────────────

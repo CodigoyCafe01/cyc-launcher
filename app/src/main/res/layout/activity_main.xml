@@ -257,21 +257,26 @@
             </LinearLayout>
 
             <!-- Mini reproductor -->
+            <!-- Mini reproductor — BUG 2 FIX: de 300dp a 0dp+weight para ocupar espacio proporcional -->
             <LinearLayout
                 android:id="@+id/widget_reproductor"
                 android:foreground="?android:attr/selectableItemBackground"
-                android:layout_width="300dp"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="0.9"
+                android:minWidth="320dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/shortcut_bg"
                 android:padding="15dp"
                 android:layout_marginTop="30dp"
+                android:layout_marginStart="16dp"
                 android:layout_marginEnd="40dp"
                 android:layout_marginBottom="30dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:visibility="visible">
+
 
                 <ImageView
                     android:id="@+id/reproductor_icono"

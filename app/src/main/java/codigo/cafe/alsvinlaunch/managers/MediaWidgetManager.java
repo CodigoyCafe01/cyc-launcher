@@ -71,6 +71,8 @@ public class MediaWidgetManager {
     private OnColorExtraidoListener colorListener;
 
     private boolean estaReproduciendo = false;
+    private boolean iniciado = false; // ← guard
+    private boolean destruido = false; // ← guard para Palette
 
     // ──────────────────────────────────────────────
     //  Constructor
@@ -102,6 +104,9 @@ public class MediaWidgetManager {
     // ──────────────────────────────────────────────
 
     public void iniciar() {
+        if (iniciado) return; // ← guard principal
+        iniciado = true;
+        destruido = false;
         configurarBotones();
         registrarReceptorBroadcast();
 
@@ -133,20 +138,22 @@ public class MediaWidgetManager {
             limpiarControlador();
         }
     }
-
-    public void destruir() {
-        // 1. BroadcastReceiver
+    public void detener() {
+        // Para usar en onStop — pausa sin destruir
         if (receptorMedia != null) {
             try { actividad.unregisterReceiver(receptorMedia); } catch (Exception ignored) {}
             receptorMedia = null;
         }
-        // 2. Listener de sesiones activas
         if (listenerSesiones != null && msm != null) {
             try { msm.removeOnActiveSessionsChangedListener(listenerSesiones); } catch (Exception ignored) {}
             listenerSesiones = null;
         }
-        // 3. Callback del controlador actual
         desconectarCallback();
+        iniciado = false; // ← permite reiniciar en onStart
+    }
+    public void destruir() {
+        destruido = true; // ← cancela callbacks de Palette pendientes
+        detener();
         controladorActual = null;
         colorListener     = null;
         msm               = null;
@@ -321,14 +328,18 @@ public class MediaWidgetManager {
     private void extraerColor(Bitmap bitmap) {
         if (colorListener == null) return;
         Palette.from(bitmap).generate(palette -> {
+            if (destruido || colorListener == null) return; // ← guard
             if (palette == null) {
-                actividad.runOnUiThread(() -> colorListener.onSinColor());
+                actividad.runOnUiThread(() -> {
+                    if (!destruido) colorListener.onSinColor();
+                });
                 return;
             }
-            // DarkVibrant es el más vistoso, DarkMuted como fallback
             int color = palette.getDarkVibrantColor(
                     palette.getDarkMutedColor(0xFF1A1A2E));
-            actividad.runOnUiThread(() -> colorListener.onColor(color));
+            actividad.runOnUiThread(() -> {
+                if (!destruido) colorListener.onColor(color); // ← guard
+            });
         });
     }
 

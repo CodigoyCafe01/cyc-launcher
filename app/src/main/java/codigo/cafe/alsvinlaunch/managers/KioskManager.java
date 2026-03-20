@@ -10,7 +10,7 @@ import android.os.Handler;
  */
 public class KioskManager {
 
-    private static final long DEMORA_RETORNO = 2_000;
+    private static final long DEMORA_RETORNO = 30_000;
 
     private final Activity actividad;
     private final SharedPreferences prefs;
@@ -21,7 +21,7 @@ public class KioskManager {
     public KioskManager(Activity actividad, SharedPreferences prefs) {
         this.actividad = actividad;
         this.prefs = prefs;
-        this.activo = prefs.getBoolean("modo_kiosco", true);
+        this.activo = prefs.getBoolean("modo_kiosco", false);
         this.tareaRetorno = () -> {
             Intent intent = new Intent(actividad, actividad.getClass());
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

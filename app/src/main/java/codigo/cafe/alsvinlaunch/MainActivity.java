@@ -57,6 +57,7 @@ public class MainActivity extends Activity {
     private boolean abriendoApp       = false;
     private boolean modoColorDinamico = false;
     private int     colorActualFondo  = COLOR_BASE_FONDO;
+    private boolean primerResume      = true;  // ← NEW: evita recargas innecesarias
 
     // ── Vistas directas ──
     private TextView  textoReloj;
@@ -67,7 +68,7 @@ public class MainActivity extends Activity {
     private SharedPreferences  prefs;
 
     // ══════════════════════════════════════
-    //  CICLO DE VIDA
+    //  CICLO DE VIDA — onCreate
     // ══════════════════════════════════════
 
     @Override
@@ -97,7 +98,6 @@ public class MainActivity extends Activity {
         });
         findViewById(R.id.badge_permisos).setOnClickListener(v ->
                 permissionsManager.mostrarDialogPermisosFaltantes());
-        permissionsManager.verificar();
 
         shortcutManager = new ShortcutManager(this, prefs);
         shortcutManager.setOnAppOpenListener(new ShortcutManager.OnAppOpenListener() {
@@ -118,16 +118,14 @@ public class MainActivity extends Activity {
         contactsDialogHelper = new ContactsDialogHelper(this, prefs, btContactsManager);
         contactsDialogHelper.setOnAppOpenListener(() -> abriendoApp = true);
 
-        // ── Notificaciones BT (Notisvin) ──────────────────────────────────────
+        // ── Notificaciones BT (Notisvin) ──
         notifPanelManager = new NotifPanelManager(this);
         btNotifReceiver   = new BtNotifReceiverManager(notif ->
                 notifPanelManager.agregarNotif(notif));
         btNotifReceiver.iniciar();
-        // ─────────────────────────────────────────────────────────────────────
 
-        // ── Color dinámico (Palette) ──────────────────────────────────────────
+        // ── Color dinámico (Palette) ──
         modoColorDinamico = prefs.getBoolean(PREF_COLOR_DINAMICO, false);
-
         mediaWidgetManager.setOnColorExtraidoListener(new MediaWidgetManager.OnColorExtraidoListener() {
             @Override
             public void onColor(int colorDominante) {
@@ -138,9 +136,8 @@ public class MainActivity extends Activity {
                 if (modoColorDinamico) animarColorFondo(COLOR_BASE_FONDO);
             }
         });
-        // ─────────────────────────────────────────────────────────────────────
 
-        // ── Configurar ──
+        // ── Configurar vistas y botones (solo una vez en onCreate) ──
         shortcutManager.precargarSiNecesario();
         shortcutManager.configurarVistas(() -> systemPanelManager.ocultar());
         systemPanelManager.construir();
@@ -152,16 +149,119 @@ public class MainActivity extends Activity {
         configurarIndicadoresEstado();
         configurarReproductor();
 
-        // ── Arrancar servicios ──
+        // ── Carga inicial de datos (solo onCreate, no onResume) ──
         shortcutManager.cargar();
-        clockManager.iniciar();
-        mediaWidgetManager.iniciar();
-        statusIndicatorManager.iniciar();
         aplicarTema();
+        permissionsManager.verificar();
     }
 
     // ══════════════════════════════════════
-    //  CONFIGURACIÓN DE BOTONES (delegación)
+    //  CICLO DE VIDA — onStart / onStop
+    //  Managers que necesitan correr solo
+    //  mientras la Activity es visible
+    // ══════════════════════════════════════
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        clockManager.iniciar();          // guard interno: no crea Timer si ya corre
+        mediaWidgetManager.iniciar();    // guard interno: no registra receivers duplicados
+        statusIndicatorManager.iniciar();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        clockManager.detener();
+        mediaWidgetManager.detener();    // libera BroadcastReceiver y listener de sesiones
+        statusIndicatorManager.detener();
+    }
+
+    // ══════════════════════════════════════
+    //  CICLO DE VIDA — onResume
+    //  Solo actualizaciones ligeras,
+    //  NO recargas completas
+    // ══════════════════════════════════════
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        abriendoApp = false;
+        kioskManager.cancelarRetorno();
+
+        // Actualizaciones ligeras — siempre
+        clockManager.actualizar();
+        mediaWidgetManager.actualizar();
+        statusIndicatorManager.actualizar();
+
+
+        // Tema y permisos: solo en el primer resume o si hay cambios reales
+        if (primerResume) {
+            aplicarTema();
+            permissionsManager.verificar();
+            primerResume = false;
+        }
+
+        // Restaurar color dinámico si aplicarTema() lo sobreescribió
+        if (modoColorDinamico && colorActualFondo != COLOR_BASE_FONDO) {
+            findViewById(R.id.root_layout).setBackgroundColor(colorActualFondo);
+        }
+
+        // Mantener marquee activo al volver
+        TextView titulo = findViewById(R.id.reproductor_titulo);
+        if (titulo != null) titulo.setSelected(true);
+    }
+
+    // ══════════════════════════════════════
+    //  CICLO DE VIDA — onPause
+    // ══════════════════════════════════════
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        systemPanelManager.ocultar();
+
+        // Solo programar retorno si el kiosco está activo
+        if (!abriendoApp && kioskManager.isActivo()) {
+            kioskManager.programarRetorno();
+        }
+    }
+
+    // ══════════════════════════════════════
+    //  CICLO DE VIDA — onDestroy
+    // ══════════════════════════════════════
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        clockManager.detener();
+        mediaWidgetManager.destruir();       // libera todo incluyendo Palette callbacks
+        kioskManager.destruir();
+        statusIndicatorManager.detener();
+        contactsDialogHelper.setOnAppOpenListener(null);
+
+        if (btNotifReceiver != null) btNotifReceiver.detener();
+
+        // Soltar referencias a vistas para evitar leaks
+        textoReloj = null;
+        textoFecha = null;
+        botonTema  = null;
+    }
+
+    // ══════════════════════════════════════
+    //  onBackPressed
+    // ══════════════════════════════════════
+
+    @Override
+    public void onBackPressed() {
+        if (systemPanelManager.isVisible()) {
+            systemPanelManager.ocultar();
+        }
+        // No llamar super — en un launcher el Back no debe salir
+    }
+
+    // ══════════════════════════════════════
+    //  CONFIGURACIÓN DE BOTONES
     // ══════════════════════════════════════
 
     private void configurarReloj() {
@@ -180,7 +280,6 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Long press → sniffer de broadcasts
         findViewById(R.id.boton_reloj).setOnLongClickListener(v -> {
             abriendoApp = true;
             startActivity(new Intent(this, BroadcastSnifferActivity.class));
@@ -222,7 +321,6 @@ public class MainActivity extends Activity {
     }
 
     private void configurarIndicadoresEstado() {
-        // WiFi → ajustes WiFi
         findViewById(R.id.indicador_wifi).setOnClickListener(v -> {
             abriendoApp = true;
             try {
@@ -232,11 +330,9 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Bluetooth (click) → contactos rápidos
         findViewById(R.id.indicador_bluetooth).setOnClickListener(
                 v -> contactsDialogHelper.mostrar());
 
-        // Long press → ajustes BT
         findViewById(R.id.indicador_bluetooth).setOnLongClickListener(v -> {
             abriendoApp = true;
             try {
@@ -248,10 +344,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    /**
-     * Long press en el mini reproductor → activa / desactiva color dinámico.
-     * El estado se guarda en SharedPreferences para sobrevivir reinicios.
-     */
     private void configurarReproductor() {
         findViewById(R.id.widget_reproductor).setOnLongClickListener(v -> {
             modoColorDinamico = !modoColorDinamico;
@@ -261,7 +353,7 @@ public class MainActivity extends Activity {
                 mostrarMensaje("Color dinámico activado — long press para desactivar");
             } else {
                 mostrarMensaje("Color dinámico desactivado");
-                animarColorFondo(COLOR_BASE_FONDO); // vuelve al azul oscuro base
+                animarColorFondo(COLOR_BASE_FONDO);
             }
             return true;
         });
@@ -271,10 +363,6 @@ public class MainActivity extends Activity {
     //  COLOR DINÁMICO
     // ══════════════════════════════════════
 
-    /**
-     * Anima el fondo del root_layout desde el color actual hasta colorDestino.
-     * Duración: 800ms. Usa ArgbEvaluator para interpolar correctamente ARGB.
-     */
     private void animarColorFondo(int colorDestino) {
         if (colorActualFondo == colorDestino) return;
 
@@ -299,10 +387,6 @@ public class MainActivity extends Activity {
     //  LIBERAR MEMORIA
     // ══════════════════════════════════════
 
-    /**
-     * Mata todos los procesos en background para liberar RAM.
-     * Requiere: android.permission.KILL_BACKGROUND_PROCESSES en el Manifest.
-     */
     private void liberarMemoria() {
         try {
             ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
@@ -340,63 +424,26 @@ public class MainActivity extends Activity {
     }
 
     // ══════════════════════════════════════
-    //  CICLO DE VIDA
+    //  RESULTADOS Y PERMISOS
     // ══════════════════════════════════════
-
-    @Override
-    public void onBackPressed() {
-        if (systemPanelManager.isVisible()) {
-            systemPanelManager.ocultar();
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        systemPanelManager.ocultar();
-        if (!abriendoApp) {
-            kioskManager.programarRetorno();
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        abriendoApp = false;
-        kioskManager.cancelarRetorno();
-        shortcutManager.cargar();
-        clockManager.actualizar();
-        permissionsManager.verificar();
-        mediaWidgetManager.actualizar();
-        aplicarTema();
-
-        // Mantener marquee activo al volver
-        TextView titulo = findViewById(R.id.reproductor_titulo);
-        if (titulo != null) titulo.setSelected(true);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        clockManager.detener();
-        kioskManager.destruir();
-        mediaWidgetManager.destruir();
-        statusIndicatorManager.detener();
-        contactsDialogHelper.setOnAppOpenListener(null);
-
-        if (btNotifReceiver != null) btNotifReceiver.detener();
-
-        // Soltar referencias a vistas
-        textoReloj = null;
-        textoFecha = null;
-        botonTema  = null;
-    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         shortcutManager.procesarResultado(requestCode, resultCode, data);
         contactsDialogHelper.procesarResultado(requestCode, resultCode, data);
+
+        // ← Recargar shortcuts después de que el usuario eligió una app
+        if (resultCode == RESULT_OK) {
+            shortcutManager.cargar();
+            aplicarTema();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     // ══════════════════════════════════════
@@ -405,11 +452,5 @@ public class MainActivity extends Activity {
 
     private void mostrarMensaje(String mensaje) {
         Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 }

@@ -59,6 +59,10 @@ public class StatusIndicatorManager {
     // Referencia al adaptador obtenido una sola vez via BluetoothManager
     private BluetoothAdapter btAdapter = null;
 
+    private boolean corriendo = false; // ← agregar campo
+
+
+
     public StatusIndicatorManager(Activity actividad) {
         this.actividad      = actividad;
         this.iconoWifi      = actividad.findViewById(R.id.icono_wifi);
@@ -75,6 +79,8 @@ public class StatusIndicatorManager {
     // ══════════════════════════════════════
 
     public void iniciar() {
+        if (corriendo) return; // ← guard
+        corriendo = true;
         registrarReceptorWifi();
         registrarReceptorBluetooth();
         iniciarTimerRespaldo();
@@ -84,16 +90,28 @@ public class StatusIndicatorManager {
     }
 
     public void detener() {
+        corriendo = false; // ← resetear guard
+
         if (temporizador != null) {
             temporizador.cancel();
+            temporizador.purge();
             temporizador = null;
         }
         try {
-            if (receptorWifi      != null) actividad.unregisterReceiver(receptorWifi);
-            if (receptorBluetooth != null) actividad.unregisterReceiver(receptorBluetooth);
+            if (receptorWifi != null) {
+                actividad.unregisterReceiver(receptorWifi);
+                receptorWifi = null; // ← limpiar referencia
+            }
+            if (receptorBluetooth != null) {
+                actividad.unregisterReceiver(receptorBluetooth);
+                receptorBluetooth = null; // ← limpiar referencia
+            }
         } catch (IllegalArgumentException ignored) {}
     }
-
+    public void actualizar() {
+        actualizarWifi();
+        actualizarBluetooth();
+    }
     // ══════════════════════════════════════
     //  BLUETOOTH — inicialización segura
     // ══════════════════════════════════════
@@ -349,4 +367,7 @@ public class StatusIndicatorManager {
         ultimoNombreBt = null;
         return null;
     }
+
+
+
 }

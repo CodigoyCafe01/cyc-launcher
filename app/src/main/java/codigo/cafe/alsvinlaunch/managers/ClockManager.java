@@ -20,6 +20,7 @@ public class ClockManager {
     private final TextView textoReloj;
     private final TextView textoFecha;
     private Timer temporizador;
+    private boolean corriendo = false; // ← guard
 
     public ClockManager(Activity actividad, TextView textoReloj, TextView textoFecha) {
         this.actividad = actividad;
@@ -28,6 +29,9 @@ public class ClockManager {
     }
 
     public void iniciar() {
+        if (corriendo) return; // ← si ya corre, no crear otro
+
+        corriendo = true;
         temporizador = new Timer();
         temporizador.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -38,14 +42,17 @@ public class ClockManager {
     }
 
     public void actualizar() {
+        if (textoReloj == null || textoFecha == null) return; // ← null safety
         Date ahora = new Date();
         textoReloj.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(ahora));
         textoFecha.setText(new SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()).format(ahora));
     }
 
     public void detener() {
+        corriendo = false; // ← resetear guard
         if (temporizador != null) {
             temporizador.cancel();
+            temporizador.purge(); // ← limpiar tareas pendientes en la cola
             temporizador = null;
         }
     }
