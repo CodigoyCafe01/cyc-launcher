@@ -330,18 +330,25 @@ public class MainActivity extends Activity {
             }
         });
 
-        findViewById(R.id.indicador_bluetooth).setOnClickListener(
-                v -> contactsDialogHelper.mostrar());
-
-        findViewById(R.id.indicador_bluetooth).setOnLongClickListener(v -> {
+        // BT → abre ajustes bluetooth directamente
+        findViewById(R.id.indicador_bluetooth).setOnClickListener(v -> {
             abriendoApp = true;
             try {
                 startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));
             } catch (Exception e) {
-                abriendoApp = false;
+                // Fallback — ajustes generales
+                try {
+                    startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
+                } catch (Exception ex) {
+                    abriendoApp = false;
+                    mostrarMensaje("No se pudo abrir Bluetooth");
+                }
             }
-            return true;
         });
+
+        // Contactos → abre el diálogo de contactos rápidos
+        findViewById(R.id.boton_contactos).setOnClickListener(
+                v -> contactsDialogHelper.mostrar());
     }
 
     private void configurarReproductor() {
@@ -392,20 +399,47 @@ public class MainActivity extends Activity {
             ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
             if (am == null) return;
 
+            // RAM antes
+            ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
+            am.getMemoryInfo(memInfo);
+            long ramLibreAntes = memInfo.availMem / (1024 * 1024);
+
             List<ActivityManager.RunningAppProcessInfo> procesos = am.getRunningAppProcesses();
-            if (procesos == null) return;
+            if (procesos == null) {
+                mostrarMensaje("No hay procesos");
+                return;
+            }
 
             int liberados = 0;
+            String appsMatadas = "";
+
             for (ActivityManager.RunningAppProcessInfo proceso : procesos) {
-                if (proceso.importance > ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                // En Android 6: IMPORTANCE_BACKGROUND = 400, IMPORTANCE_EMPTY = 500
+                // Matar todo lo que esté en background o empty, excepto nosotros mismos
+                if (proceso.importance >= ActivityManager.RunningAppProcessInfo.IMPORTANCE_BACKGROUND
+                        && !proceso.processName.equals(getPackageName())) {
                     am.killBackgroundProcesses(proceso.processName);
+                    appsMatadas += "\n• " + proceso.processName;
                     liberados++;
                 }
             }
-            mostrarMensaje("✓ " + liberados + " apps cerradas — memoria liberada");
+
+            // Esperar 500ms y mostrar RAM liberada
+            final int totalLiberados = liberados;
+            final String listaApps = appsMatadas;
+            new android.os.Handler().postDelayed(() -> {
+                am.getMemoryInfo(memInfo);
+                long ramLibreDespues = memInfo.availMem / (1024 * 1024);
+                long ganancia = ramLibreDespues - ramLibreAntes;
+
+                mostrarMensaje("✓ " + totalLiberados + " apps cerradas\n"
+                        + "RAM antes: " + ramLibreAntes + "MB\n"
+                        + "RAM ahora: " + ramLibreDespues + "MB\n"
+                        + (ganancia > 0 ? "+" + ganancia + "MB liberados" : "sin cambio"));
+            }, 500);
 
         } catch (Exception e) {
-            mostrarMensaje("Error al liberar memoria");
+            mostrarMensaje("Error: " + e.getMessage());
         }
     }
 

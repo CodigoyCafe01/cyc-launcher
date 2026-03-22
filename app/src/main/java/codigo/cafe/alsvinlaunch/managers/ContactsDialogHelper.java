@@ -18,25 +18,14 @@ import android.widget.Toast;
 import codigo.cafe.alsvinlaunch.R;
 import codigo.cafe.alsvinlaunch.util.ConstantesSistema;
 
-/**
- * Diálogo de contactos rápidos (máx. 3).
- *
- * Llamadas vía ACTION_DIAL → HiveOS enruta por HFP al teléfono BT conectado.
- * No requiere CALL_PHONE.
- *
- * Importar contactos vía picker nativo de Google Contacts.
- * No requiere READ_CONTACTS.
- */
 public class ContactsDialogHelper {
 
     public static final int REQUEST_PICK_CONTACT = 2001;
-
     private static final int MAX_CONTACTOS = 3;
 
     private final Activity actividad;
     private final SharedPreferences prefs;
     private OnAppOpenListener listenerApp;
-
     private int indicePendiente = -1;
 
     public interface OnAppOpenListener {
@@ -46,17 +35,12 @@ public class ContactsDialogHelper {
     public ContactsDialogHelper(Activity actividad, SharedPreferences prefs,
                                 BluetoothContactsManager btContactsManager) {
         this.actividad = actividad;
-        this.prefs     = prefs;
-        // btContactsManager no se usa — importamos vía picker nativo
+        this.prefs = prefs;
     }
 
     public void setOnAppOpenListener(OnAppOpenListener listener) {
         this.listenerApp = listener;
     }
-
-    // ──────────────────────────────────────────────
-    //  Diálogo principal
-    // ──────────────────────────────────────────────
 
     public void mostrar() {
         View vista = LayoutInflater.from(actividad)
@@ -90,7 +74,7 @@ public class ContactsDialogHelper {
         String numero = prefs.getString("contacto_numero_" + indice, null);
 
         LinearLayout grupoContacto = fila.findViewById(R.id.grupo_contacto);
-        TextView botonAgregar      = fila.findViewById(R.id.boton_agregar);
+        TextView botonAgregar = fila.findViewById(R.id.boton_agregar);
 
         if (nombre != null && numero != null) {
             grupoContacto.setVisibility(View.VISIBLE);
@@ -107,7 +91,7 @@ public class ContactsDialogHelper {
                 prefs.edit()
                         .remove("contacto_nombre_" + indice)
                         .remove("contacto_numero_" + indice)
-                        .apply();
+                        .commit(); // ← commit() síncrono
                 Toast.makeText(actividad, "Contacto eliminado", Toast.LENGTH_SHORT).show();
                 dialogo.dismiss();
                 mostrar();
@@ -123,10 +107,6 @@ public class ContactsDialogHelper {
             });
         }
     }
-
-    // ──────────────────────────────────────────────
-    //  Diálogo agregar
-    // ──────────────────────────────────────────────
 
     private void mostrarDialogoAgregar(int indice) {
         View vista = LayoutInflater.from(actividad)
@@ -167,65 +147,41 @@ public class ContactsDialogHelper {
         dialogo.show();
     }
 
-    // ──────────────────────────────────────────────
-    //  Picker nativo de Google Contacts
-    // ──────────────────────────────────────────────
-
     private void abrirPickerContactos(int indice) {
         indicePendiente = indice;
-        // ← guardar en prefs para sobrevivir destroy
-        prefs.edit().putInt("contacto_pendiente_idx", indice).apply();
+        prefs.edit().putInt("contacto_pendiente_idx", indice).commit();
         if (listenerApp != null) listenerApp.onAppOpening();
 
-        Intent intent = new Intent(Intent.ACTION_PICK,
-                ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
-        intent.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE);
-        intent.setPackage("com.google.android.contacts");
-
         try {
+            Intent intent = new Intent(Intent.ACTION_PICK,
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
+            // ← sin setPackage, un solo intent, un solo resultado
             actividad.startActivityForResult(intent, REQUEST_PICK_CONTACT);
         } catch (Exception e) {
-            try {
-                Intent fallback = new Intent(Intent.ACTION_PICK,
-                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
-                actividad.startActivityForResult(fallback, REQUEST_PICK_CONTACT);
-            } catch (Exception ex) {
-                Toast.makeText(actividad,
-                        "No se pudo abrir Google Contacts", Toast.LENGTH_SHORT).show();
-                indicePendiente = -1;
-                prefs.edit().remove("contacto_pendiente_idx").apply();
-            }
+            Toast.makeText(actividad,
+                    "No se pudo abrir contactos", Toast.LENGTH_SHORT).show();
+            indicePendiente = -1;
+            prefs.edit().remove("contacto_pendiente_idx").commit();
         }
     }
 
     public void procesarResultado(int requestCode, int resultCode, Intent data) {
         if (requestCode != REQUEST_PICK_CONTACT) return;
 
+        // Restaurar índice desde prefs si la activity fue destruida
         if (indicePendiente < 0) {
             indicePendiente = prefs.getInt("contacto_pendiente_idx", -1);
         }
 
-        Toast.makeText(actividad, "DEBUG: requestCode=" + requestCode
-                        + " resultCode=" + resultCode
-                        + " indice=" + indicePendiente
-                        + " data=" + (data != null ? data.getData() : "null"),
-                Toast.LENGTH_LONG).show();
-
         if (resultCode != Activity.RESULT_OK || data == null || indicePendiente < 0) {
-            Toast.makeText(actividad, "DEBUG: falló en el guard — resultCode="
-                            + resultCode + " data=" + data + " indice=" + indicePendiente,
-                    Toast.LENGTH_LONG).show();
             indicePendiente = -1;
-            prefs.edit().remove("contacto_pendiente_idx").apply();
+            prefs.edit().remove("contacto_pendiente_idx").commit();
             return;
         }
 
         try {
-            Uri uri = data.getData();
-            Toast.makeText(actividad, "DEBUG: URI=" + uri, Toast.LENGTH_LONG).show();
-
             Cursor cursor = actividad.getContentResolver().query(
-                    uri,
+                    data.getData(),
                     new String[]{
                             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
                             ContactsContract.CommonDataKinds.Phone.NUMBER
@@ -233,59 +189,81 @@ public class ContactsDialogHelper {
                     null, null, null
             );
 
-            Toast.makeText(actividad, "DEBUG: cursor=" + cursor
-                            + (cursor != null ? " count=" + cursor.getCount() : ""),
-                    Toast.LENGTH_LONG).show();
-
             if (cursor != null && cursor.moveToFirst()) {
                 String nombre = cursor.getString(0);
                 String numero = cursor.getString(1);
                 cursor.close();
-                Toast.makeText(actividad, "DEBUG: nombre=" + nombre + " numero=" + numero,
-                        Toast.LENGTH_LONG).show();
-                // ... resto
+
+                if (numero != null && !numero.trim().isEmpty()) {
+                    guardarContacto(indicePendiente, nombre, numero.trim());
+                    Toast.makeText(actividad,
+                            "Contacto guardado: " + nombre, Toast.LENGTH_SHORT).show();
+                    mostrar();
+                } else {
+                    Toast.makeText(actividad,
+                            "El contacto no tiene número", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                if (cursor != null) cursor.close();
+                Toast.makeText(actividad,
+                        "No se pudo leer el contacto", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
-            Toast.makeText(actividad, "DEBUG: excepción=" + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(actividad,
+                    "Error al importar contacto", Toast.LENGTH_SHORT).show();
         }
+
+        indicePendiente = -1;
+        prefs.edit().remove("contacto_pendiente_idx").commit();
     }
-    
-    // ──────────────────────────────────────────────
-    //  Llamadas vía HFP Bluetooth
-    // ──────────────────────────────────────────────
 
     private void realizarLlamada(String numero) {
         if (listenerApp != null) listenerApp.onAppOpening();
+
+        String numeroLimpio = numero.replaceAll("[^+0-9]", "");
+
+        // 1. ACTION_CALL → HiveOS enruta por HFP
         try {
-            // ACTION_DIAL no requiere CALL_PHONE
-            // HiveOS intercepta y enruta por HFP al teléfono BT conectado
-            Intent intent = new Intent(Intent.ACTION_DIAL);
-            intent.setData(Uri.parse("tel:" + numero));
+            Intent intent = new Intent(Intent.ACTION_CALL);
+            intent.setData(Uri.parse("tel:" + numeroLimpio));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             actividad.startActivity(intent);
+            Toast.makeText(actividad, "✓ Llamada vía ACTION_CALL", Toast.LENGTH_SHORT).show();
+            return;
         } catch (Exception e) {
-            try {
-                Intent intent = new Intent();
-                intent.setComponent(new ComponentName(
-                        ConstantesSistema.PAQUETE_HIVEOS,
-                        ConstantesSistema.ACTIVIDAD_TELEFONO));
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                actividad.startActivity(intent);
-            } catch (Exception ex) {
-                Toast.makeText(actividad,
-                        "No se pudo abrir el marcador", Toast.LENGTH_SHORT).show();
-            }
+            Toast.makeText(actividad, "✗ ACTION_CALL falló: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+
+        // 2. App nativa HiveOS
+        try {
+            Intent intent = new Intent();
+            intent.setComponent(new ComponentName(
+                    ConstantesSistema.PAQUETE_HIVEOS,
+                    ConstantesSistema.ACTIVIDAD_TELEFONO));
+            intent.setData(Uri.parse("tel:" + numeroLimpio));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            actividad.startActivity(intent);
+            Toast.makeText(actividad, "✓ Llamada vía HiveOS", Toast.LENGTH_SHORT).show();
+            return;
+        } catch (Exception e) {
+            Toast.makeText(actividad, "✗ HiveOS falló: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+
+        // 3. ACTION_DIAL — último recurso
+        try {
+            Intent intent = new Intent(Intent.ACTION_DIAL);
+            intent.setData(Uri.parse("tel:" + numeroLimpio));
+            actividad.startActivity(intent);
+            Toast.makeText(actividad, "✓ Llamada vía ACTION_DIAL (confirmar manual)", Toast.LENGTH_LONG).show();
+        } catch (Exception ex) {
+            Toast.makeText(actividad, "✗ Todo falló: " + ex.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
-
-    // ──────────────────────────────────────────────
-    //  Utilidades
-    // ──────────────────────────────────────────────
 
     private void guardarContacto(int indice, String nombre, String numero) {
         prefs.edit()
                 .putString("contacto_nombre_" + indice, nombre)
                 .putString("contacto_numero_" + indice, numero)
-                .apply();
+                .commit(); // ← commit() síncrono
     }
 }
