@@ -62,7 +62,7 @@ public class AppPickerActivity extends Activity {
         String myPkg = getPackageName();
         java.util.Set<String> addedPackages = new java.util.HashSet<>();
 
-        // 1. Apps con launcher intent (las normales)
+        // 1. Apps normales con launcher
         Intent launcherIntent = new Intent(Intent.ACTION_MAIN, null);
         launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> launcherApps = pm.queryIntentActivities(launcherIntent, 0);
@@ -78,61 +78,29 @@ public class AppPickerActivity extends Activity {
             addedPackages.add(info.packageName);
         }
 
-        // 2. TODAS las apps instaladas (sistema incluidas)
+        // 2. Apps del sistema con icono real (BT, Settings, etc.)
         List<android.content.pm.ApplicationInfo> allInstalled =
                 pm.getInstalledApplications(PackageManager.GET_META_DATA);
 
         for (android.content.pm.ApplicationInfo appInfo : allInstalled) {
             if (addedPackages.contains(appInfo.packageName)) continue;
             if (appInfo.packageName.equals(myPkg)) continue;
+            if (appInfo.icon == 0) continue; // ← sin icono real = fuera
 
-            // Intentar obtener launch intent
             Intent launchIntent = pm.getLaunchIntentForPackage(appInfo.packageName);
-            if (launchIntent != null) {
-                ComponentName comp = launchIntent.getComponent();
-                AllAppsActivity.AppInfo info = new AllAppsActivity.AppInfo();
-                info.label = appInfo.loadLabel(pm).toString();
-                info.packageName = appInfo.packageName;
-                info.className = comp != null ? comp.getClassName() : "";
-                info.icon = appInfo.loadIcon(pm);
-                apps.add(info);
-                addedPackages.add(info.packageName);
-                continue;
-            }
+            if (launchIntent == null) continue; // ← sin activity lanzable = fuera
 
-            // Si no tiene launch intent, buscar CUALQUIER activity
-            try {
-                android.content.pm.PackageInfo pkgInfo =
-                        pm.getPackageInfo(appInfo.packageName,
-                                PackageManager.GET_ACTIVITIES);
-
-                if (pkgInfo.activities != null && pkgInfo.activities.length > 0) {
-                    // Tomar la primera activity exportada
-                    for (android.content.pm.ActivityInfo actInfo : pkgInfo.activities) {
-                        if (actInfo.exported) {
-                            AllAppsActivity.AppInfo info = new AllAppsActivity.AppInfo();
-                            info.label = appInfo.loadLabel(pm).toString();
-                            info.packageName = appInfo.packageName;
-                            info.className = actInfo.name;
-                            info.icon = appInfo.loadIcon(pm);
-                            apps.add(info);
-                            addedPackages.add(info.packageName);
-                            break;
-                        }
-                    }
-                }
-            } catch (PackageManager.NameNotFoundException e) {
-                // ignorar
-            }
+            ComponentName comp = launchIntent.getComponent();
+            AllAppsActivity.AppInfo info = new AllAppsActivity.AppInfo();
+            info.label = appInfo.loadLabel(pm).toString();
+            info.packageName = appInfo.packageName;
+            info.className = comp != null ? comp.getClassName() : "";
+            info.icon = appInfo.loadIcon(pm);
+            apps.add(info);
+            addedPackages.add(info.packageName);
         }
 
-        Collections.sort(apps, new Comparator<AllAppsActivity.AppInfo>() {
-            @Override
-            public int compare(AllAppsActivity.AppInfo a, AllAppsActivity.AppInfo b) {
-                return a.label.compareToIgnoreCase(b.label);
-            }
-        });
-
+        Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
         return apps;
     }
 

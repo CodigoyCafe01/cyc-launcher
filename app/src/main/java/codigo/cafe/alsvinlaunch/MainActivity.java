@@ -36,36 +36,36 @@ import codigo.cafe.alsvinlaunch.managers.ThemeManager;
  */
 public class MainActivity extends Activity {
 
-    private static final String NOMBRE_PREFS        = "alsvin_launcher_prefs";
+    private static final String NOMBRE_PREFS = "alsvin_launcher_prefs";
     private static final String PREF_COLOR_DINAMICO = "color_dinamico";
-    private static final int    COLOR_BASE_FONDO    = 0xFF1A1A2E;
+    private static final int COLOR_BASE_FONDO = 0xFF1A1A2E;
 
     // ── Managers ──
-    private ClockManager             clockManager;
-    private ThemeManager             themeManager;
-    private ShortcutManager          shortcutManager;
-    private SystemPanelManager       systemPanelManager;
-    private MediaWidgetManager       mediaWidgetManager;
-    private StatusIndicatorManager   statusIndicatorManager;
-    private ContactsDialogHelper     contactsDialogHelper;
-    private KioskManager             kioskManager;
+    private ClockManager clockManager;
+    private ThemeManager themeManager;
+    private ShortcutManager shortcutManager;
+    private SystemPanelManager systemPanelManager;
+    private MediaWidgetManager mediaWidgetManager;
+    private StatusIndicatorManager statusIndicatorManager;
+    private ContactsDialogHelper contactsDialogHelper;
+    private KioskManager kioskManager;
     private BluetoothContactsManager btContactsManager;
-    private BtNotifReceiverManager   btNotifReceiver;
-    private NotifPanelManager        notifPanelManager;
+    private BtNotifReceiverManager btNotifReceiver;
+    private NotifPanelManager notifPanelManager;
 
     // ── Estado ──
-    private boolean abriendoApp       = false;
+    private boolean abriendoApp = false;
     private boolean modoColorDinamico = false;
-    private int     colorActualFondo  = COLOR_BASE_FONDO;
-    private boolean primerResume      = true;  // ← NEW: evita recargas innecesarias
+    private int colorActualFondo = COLOR_BASE_FONDO;
+    private boolean primerResume = true;
 
     // ── Vistas directas ──
-    private TextView  textoReloj;
-    private TextView  textoFecha;
+    private TextView textoReloj;
+    private TextView textoFecha;
     private ImageView botonTema;
 
     private PermissionsManager permissionsManager;
-    private SharedPreferences  prefs;
+    private SharedPreferences prefs;
 
     // ══════════════════════════════════════
     //  CICLO DE VIDA — onCreate
@@ -82,13 +82,13 @@ public class MainActivity extends Activity {
         // ── Buscar vistas ──
         textoReloj = findViewById(R.id.clock_text);
         textoFecha = findViewById(R.id.date_text);
-        botonTema  = findViewById(R.id.btn_theme_toggle);
+        botonTema = findViewById(R.id.btn_theme_toggle);
         LinearLayout panelSistema = findViewById(R.id.system_panel);
 
         // ── Inicializar managers ──
-        clockManager  = new ClockManager(this, textoReloj, textoFecha);
-        themeManager  = new ThemeManager(this, prefs);
-        kioskManager  = new KioskManager(this, prefs);
+        clockManager = new ClockManager(this, textoReloj, textoFecha);
+        themeManager = new ThemeManager(this, prefs);
+        kioskManager = new KioskManager(this, prefs);
 
         permissionsManager = new PermissionsManager(this);
         permissionsManager.setOnAbrirAjustesListener(() -> abriendoApp = true);
@@ -101,18 +101,32 @@ public class MainActivity extends Activity {
 
         shortcutManager = new ShortcutManager(this, prefs);
         shortcutManager.setOnAppOpenListener(new ShortcutManager.OnAppOpenListener() {
-            @Override public void onAppOpening()    { abriendoApp = true;  }
-            @Override public void onAppOpenFailed() { abriendoApp = false; }
+            @Override
+            public void onAppOpening() {
+                abriendoApp = true;
+            }
+
+            @Override
+            public void onAppOpenFailed() {
+                abriendoApp = false;
+            }
         });
 
         systemPanelManager = new SystemPanelManager(this, panelSistema);
         systemPanelManager.setOnAppOpenListener(new SystemPanelManager.OnAppOpenListener() {
-            @Override public void onAppOpening()    { abriendoApp = true;  }
-            @Override public void onAppOpenFailed() { abriendoApp = false; }
+            @Override
+            public void onAppOpening() {
+                abriendoApp = true;
+            }
+
+            @Override
+            public void onAppOpenFailed() {
+                abriendoApp = false;
+            }
         });
 
-        btContactsManager      = new BluetoothContactsManager(this);
-        mediaWidgetManager     = new MediaWidgetManager(this);
+        btContactsManager = new BluetoothContactsManager(this);
+        mediaWidgetManager = new MediaWidgetManager(this);
         statusIndicatorManager = new StatusIndicatorManager(this);
 
         contactsDialogHelper = new ContactsDialogHelper(this, prefs, btContactsManager);
@@ -120,7 +134,7 @@ public class MainActivity extends Activity {
 
         // ── Notificaciones BT (Notisvin) ──
         notifPanelManager = new NotifPanelManager(this);
-        btNotifReceiver   = new BtNotifReceiverManager(notif ->
+        btNotifReceiver = new BtNotifReceiverManager(notif ->
                 notifPanelManager.agregarNotif(notif));
         btNotifReceiver.iniciar();
 
@@ -131,6 +145,7 @@ public class MainActivity extends Activity {
             public void onColor(int colorDominante) {
                 if (modoColorDinamico) animarColorFondo(colorDominante);
             }
+
             @Override
             public void onSinColor() {
                 if (modoColorDinamico) animarColorFondo(COLOR_BASE_FONDO);
@@ -157,15 +172,13 @@ public class MainActivity extends Activity {
 
     // ══════════════════════════════════════
     //  CICLO DE VIDA — onStart / onStop
-    //  Managers que necesitan correr solo
-    //  mientras la Activity es visible
     // ══════════════════════════════════════
 
     @Override
     protected void onStart() {
         super.onStart();
-        clockManager.iniciar();          // guard interno: no crea Timer si ya corre
-        mediaWidgetManager.iniciar();    // guard interno: no registra receivers duplicados
+        clockManager.iniciar();
+        mediaWidgetManager.iniciar();
         statusIndicatorManager.iniciar();
     }
 
@@ -173,14 +186,12 @@ public class MainActivity extends Activity {
     protected void onStop() {
         super.onStop();
         clockManager.detener();
-        mediaWidgetManager.detener();    // libera BroadcastReceiver y listener de sesiones
+        mediaWidgetManager.detener();
         statusIndicatorManager.detener();
     }
 
     // ══════════════════════════════════════
     //  CICLO DE VIDA — onResume
-    //  Solo actualizaciones ligeras,
-    //  NO recargas completas
     // ══════════════════════════════════════
 
     @Override
@@ -189,25 +200,20 @@ public class MainActivity extends Activity {
         abriendoApp = false;
         kioskManager.cancelarRetorno();
 
-        // Actualizaciones ligeras — siempre
         clockManager.actualizar();
         mediaWidgetManager.actualizar();
         statusIndicatorManager.actualizar();
 
-
-        // Tema y permisos: solo en el primer resume o si hay cambios reales
         if (primerResume) {
             aplicarTema();
             permissionsManager.verificar();
             primerResume = false;
         }
 
-        // Restaurar color dinámico si aplicarTema() lo sobreescribió
         if (modoColorDinamico && colorActualFondo != COLOR_BASE_FONDO) {
             findViewById(R.id.root_layout).setBackgroundColor(colorActualFondo);
         }
 
-        // Mantener marquee activo al volver
         TextView titulo = findViewById(R.id.reproductor_titulo);
         if (titulo != null) titulo.setSelected(true);
     }
@@ -221,7 +227,6 @@ public class MainActivity extends Activity {
         super.onPause();
         systemPanelManager.ocultar();
 
-        // Solo programar retorno si el kiosco está activo
         if (!abriendoApp && kioskManager.isActivo()) {
             kioskManager.programarRetorno();
         }
@@ -235,17 +240,16 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         clockManager.detener();
-        mediaWidgetManager.destruir();       // libera todo incluyendo Palette callbacks
+        mediaWidgetManager.destruir();
         kioskManager.destruir();
         statusIndicatorManager.detener();
         contactsDialogHelper.setOnAppOpenListener(null);
 
         if (btNotifReceiver != null) btNotifReceiver.detener();
 
-        // Soltar referencias a vistas para evitar leaks
         textoReloj = null;
         textoFecha = null;
-        botonTema  = null;
+        botonTema = null;
     }
 
     // ══════════════════════════════════════
@@ -265,7 +269,8 @@ public class MainActivity extends Activity {
     // ══════════════════════════════════════
 
     private void configurarReloj() {
-        findViewById(R.id.boton_reloj).setOnClickListener(v -> {
+        // Long press → abre ajustes de fecha/hora
+        findViewById(R.id.boton_reloj).setOnLongClickListener(v -> {
             systemPanelManager.ocultar();
             abriendoApp = true;
             try {
@@ -278,11 +283,6 @@ public class MainActivity extends Activity {
                     mostrarMensaje("No se pudo abrir los ajustes");
                 }
             }
-        });
-
-        findViewById(R.id.boton_reloj).setOnLongClickListener(v -> {
-            abriendoApp = true;
-            startActivity(new Intent(this, BroadcastSnifferActivity.class));
             return true;
         });
     }
@@ -430,14 +430,15 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        shortcutManager.procesarResultado(requestCode, resultCode, data);
-        contactsDialogHelper.procesarResultado(requestCode, resultCode, data);
 
-        // ← Recargar shortcuts después de que el usuario eligió una app
-        if (resultCode == RESULT_OK) {
-            shortcutManager.cargar();
-            aplicarTema();
+        // ← FIX: cada manager maneja solo su requestCode
+        if (requestCode == ShortcutManager.SOLICITUD_ELEGIR_APP) {
+            shortcutManager.procesarResultado(requestCode, resultCode, data);
+            // procesarResultado ya guarda prefs y llama cargar() internamente
+            return;
         }
+
+        contactsDialogHelper.procesarResultado(requestCode, resultCode, data);
     }
 
     @Override

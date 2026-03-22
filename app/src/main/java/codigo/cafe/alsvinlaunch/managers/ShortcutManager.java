@@ -132,6 +132,8 @@ public class ShortcutManager {
 
     public void elegirApp(int indice) {
         indiceAccesoPendiente = indice;
+        // ← guardar en prefs para sobrevivir destroy
+        prefs.edit().putInt("acceso_pendiente_idx", indice).apply();
         notificarAbriendo();
         actividad.startActivityForResult(
                 new Intent(actividad, AppPickerActivity.class), SOLICITUD_ELEGIR_APP);
@@ -139,17 +141,26 @@ public class ShortcutManager {
 
     public void procesarResultado(int requestCode, int resultCode, Intent data) {
         if (requestCode != SOLICITUD_ELEGIR_APP || resultCode != Activity.RESULT_OK || data == null) {
+            prefs.edit().remove("acceso_pendiente_idx").apply();
             indiceAccesoPendiente = -1;
             return;
         }
+
+        // ← restaurar índice desde prefs si se perdió por destroy
+        if (indiceAccesoPendiente < 0) {
+            indiceAccesoPendiente = prefs.getInt("acceso_pendiente_idx", -1);
+        }
+
         String paquete = data.getStringExtra("package_name");
-        String clase = data.getStringExtra("class_name");
-        String nombre = data.getStringExtra("app_label");
+        String clase   = data.getStringExtra("class_name");
+        String nombre  = data.getStringExtra("app_label");
+
         if (indiceAccesoPendiente >= 0 && paquete != null) {
             prefs.edit()
                     .putString("acceso_paquete_" + indiceAccesoPendiente, paquete)
-                    .putString("acceso_clase_" + indiceAccesoPendiente, clase)
-                    .putString("acceso_nombre_" + indiceAccesoPendiente, nombre)
+                    .putString("acceso_clase_"   + indiceAccesoPendiente, clase)
+                    .putString("acceso_nombre_"  + indiceAccesoPendiente, nombre)
+                    .remove("acceso_pendiente_idx")  // ← limpiar
                     .apply();
             cargar();
         }

@@ -19,3 +19,6 @@ app/release/app-launcher.apk
 app/release/baselineProfiles/0/app-launcher.dm
 app/release/baselineProfiles/1/app-launcher.dm
 *.dm
+/app/release
+app/release/app-launcher.apk
+app/release/baselineProfiles/0/app-launcher.dm

@@ -173,6 +173,8 @@ public class ContactsDialogHelper {
 
     private void abrirPickerContactos(int indice) {
         indicePendiente = indice;
+        // ← guardar en prefs para sobrevivir destroy
+        prefs.edit().putInt("contacto_pendiente_idx", indice).apply();
         if (listenerApp != null) listenerApp.onAppOpening();
 
         Intent intent = new Intent(Intent.ACTION_PICK,
@@ -183,7 +185,6 @@ public class ContactsDialogHelper {
         try {
             actividad.startActivityForResult(intent, REQUEST_PICK_CONTACT);
         } catch (Exception e) {
-            // Fallback: picker genérico si Google Contacts no está instalado
             try {
                 Intent fallback = new Intent(Intent.ACTION_PICK,
                         ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
@@ -192,25 +193,39 @@ public class ContactsDialogHelper {
                 Toast.makeText(actividad,
                         "No se pudo abrir Google Contacts", Toast.LENGTH_SHORT).show();
                 indicePendiente = -1;
+                prefs.edit().remove("contacto_pendiente_idx").apply();
             }
         }
     }
 
-    /**
-     * Llamar desde MainActivity.onActivityResult():
-     *
-     *   contactsDialogHelper.procesarResultado(requestCode, resultCode, data);
-     */
     public void procesarResultado(int requestCode, int resultCode, Intent data) {
         if (requestCode != REQUEST_PICK_CONTACT) return;
+
+        if (indicePendiente < 0) {
+            indicePendiente = prefs.getInt("contacto_pendiente_idx", -1);
+        }
+
+        Toast.makeText(actividad, "DEBUG: requestCode=" + requestCode
+                        + " resultCode=" + resultCode
+                        + " indice=" + indicePendiente
+                        + " data=" + (data != null ? data.getData() : "null"),
+                Toast.LENGTH_LONG).show();
+
         if (resultCode != Activity.RESULT_OK || data == null || indicePendiente < 0) {
+            Toast.makeText(actividad, "DEBUG: falló en el guard — resultCode="
+                            + resultCode + " data=" + data + " indice=" + indicePendiente,
+                    Toast.LENGTH_LONG).show();
             indicePendiente = -1;
+            prefs.edit().remove("contacto_pendiente_idx").apply();
             return;
         }
 
         try {
+            Uri uri = data.getData();
+            Toast.makeText(actividad, "DEBUG: URI=" + uri, Toast.LENGTH_LONG).show();
+
             Cursor cursor = actividad.getContentResolver().query(
-                    data.getData(),
+                    uri,
                     new String[]{
                             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
                             ContactsContract.CommonDataKinds.Phone.NUMBER
@@ -218,33 +233,24 @@ public class ContactsDialogHelper {
                     null, null, null
             );
 
+            Toast.makeText(actividad, "DEBUG: cursor=" + cursor
+                            + (cursor != null ? " count=" + cursor.getCount() : ""),
+                    Toast.LENGTH_LONG).show();
+
             if (cursor != null && cursor.moveToFirst()) {
                 String nombre = cursor.getString(0);
                 String numero = cursor.getString(1);
                 cursor.close();
-
-                if (numero != null && !numero.trim().isEmpty()) {
-                    guardarContacto(indicePendiente, nombre, numero.trim());
-                    Toast.makeText(actividad,
-                            "Contacto guardado: " + nombre, Toast.LENGTH_SHORT).show();
-                    mostrar();
-                } else {
-                    Toast.makeText(actividad,
-                            "El contacto no tiene número", Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                if (cursor != null) cursor.close();
-                Toast.makeText(actividad,
-                        "No se pudo leer el contacto", Toast.LENGTH_SHORT).show();
+                Toast.makeText(actividad, "DEBUG: nombre=" + nombre + " numero=" + numero,
+                        Toast.LENGTH_LONG).show();
+                // ... resto
             }
         } catch (Exception e) {
-            Toast.makeText(actividad,
-                    "Error al importar contacto", Toast.LENGTH_SHORT).show();
+            Toast.makeText(actividad, "DEBUG: excepción=" + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
         }
-
-        indicePendiente = -1;
     }
-
+    
     // ──────────────────────────────────────────────
     //  Llamadas vía HFP Bluetooth
     // ──────────────────────────────────────────────

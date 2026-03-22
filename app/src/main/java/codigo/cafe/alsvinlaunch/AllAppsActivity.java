@@ -58,85 +58,31 @@ public class AllAppsActivity extends Activity {
         });
     }
 
-    private List<AppInfo> loadApps() {
+    private List<AllAppsActivity.AppInfo> loadApps() {
         PackageManager pm = getPackageManager();
-        List<AppInfo> apps = new ArrayList<>();
+        List<AllAppsActivity.AppInfo> apps = new ArrayList<>();
         String myPkg = getPackageName();
-        java.util.Set<String> addedPackages = new java.util.HashSet<>();
 
-        // 1. Apps con launcher intent (las normales)
         Intent launcherIntent = new Intent(Intent.ACTION_MAIN, null);
         launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> launcherApps = pm.queryIntentActivities(launcherIntent, 0);
 
         for (ResolveInfo ri : launcherApps) {
             if (ri.activityInfo.packageName.equals(myPkg)) continue;
-            AppInfo info = new AppInfo();
+            if (ri.activityInfo.applicationInfo.icon == 0) continue; // ← sin icono = sistema
+
+            AllAppsActivity.AppInfo info = new AllAppsActivity.AppInfo();
             info.label = ri.loadLabel(pm).toString();
             info.packageName = ri.activityInfo.packageName;
             info.className = ri.activityInfo.name;
             info.icon = ri.loadIcon(pm);
             apps.add(info);
-            addedPackages.add(info.packageName);
         }
 
-        // 2. TODAS las apps instaladas (sistema incluidas)
-        List<android.content.pm.ApplicationInfo> allInstalled =
-                pm.getInstalledApplications(PackageManager.GET_META_DATA);
-
-        for (android.content.pm.ApplicationInfo appInfo : allInstalled) {
-            if (addedPackages.contains(appInfo.packageName)) continue;
-            if (appInfo.packageName.equals(myPkg)) continue;
-
-            // Intentar obtener launch intent
-            Intent launchIntent = pm.getLaunchIntentForPackage(appInfo.packageName);
-            if (launchIntent != null) {
-                ComponentName comp = launchIntent.getComponent();
-                AppInfo info = new AppInfo();
-                info.label = appInfo.loadLabel(pm).toString();
-                info.packageName = appInfo.packageName;
-                info.className = comp != null ? comp.getClassName() : "";
-                info.icon = appInfo.loadIcon(pm);
-                apps.add(info);
-                addedPackages.add(info.packageName);
-                continue;
-            }
-
-            // Si no tiene launch intent, buscar CUALQUIER activity
-            try {
-                android.content.pm.PackageInfo pkgInfo =
-                        pm.getPackageInfo(appInfo.packageName,
-                                PackageManager.GET_ACTIVITIES);
-
-                if (pkgInfo.activities != null && pkgInfo.activities.length > 0) {
-                    // Tomar la primera activity exportada
-                    for (android.content.pm.ActivityInfo actInfo : pkgInfo.activities) {
-                        if (actInfo.exported) {
-                            AppInfo info = new AppInfo();
-                            info.label = appInfo.loadLabel(pm).toString();
-                            info.packageName = appInfo.packageName;
-                            info.className = actInfo.name;
-                            info.icon = appInfo.loadIcon(pm);
-                            apps.add(info);
-                            addedPackages.add(info.packageName);
-                            break;
-                        }
-                    }
-                }
-            } catch (PackageManager.NameNotFoundException e) {
-                // ignorar
-            }
-        }
-
-        Collections.sort(apps, new Comparator<AppInfo>() {
-            @Override
-            public int compare(AppInfo a, AppInfo b) {
-                return a.label.compareToIgnoreCase(b.label);
-            }
-        });
-
+        Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
         return apps;
     }
+
     private class AppsAdapter extends BaseAdapter {
         @Override
         public int getCount() { return appList.size(); }
