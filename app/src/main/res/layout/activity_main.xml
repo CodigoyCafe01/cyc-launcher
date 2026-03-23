@@ -146,26 +146,6 @@
                 android:layout_height="1dp"
                 android:layout_weight="1" />
 
-            <!-- Botón captura de pantalla -->
-            <LinearLayout
-                android:id="@+id/fab_screenshot"
-                android:background="@drawable/fab_bg_clear"
-                android:layout_width="50dp"
-                android:layout_height="48dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:layout_marginEnd="8dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:elevation="6dp">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@android:drawable/ic_menu_camera" />
-            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/fab_clear_apps"

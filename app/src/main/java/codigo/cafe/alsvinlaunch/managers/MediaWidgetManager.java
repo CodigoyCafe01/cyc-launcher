@@ -17,6 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
 import androidx.palette.graphics.Palette;
 
 import java.util.List;
@@ -226,8 +227,11 @@ public class MediaWidgetManager {
                 }
             }
         };
-        actividad.registerReceiver(receptorMedia,
-                new IntentFilter(ServicioNotificaciones.ACCION_MEDIA_CAMBIO));
+        /*actividad.registerReceiver(receptorMedia,
+                new IntentFilter(ServicioNotificaciones.ACCION_MEDIA_CAMBIO));*/
+        ContextCompat.registerReceiver(actividad, receptorMedia,
+                new IntentFilter(ServicioNotificaciones.ACCION_MEDIA_CAMBIO),
+                ContextCompat.RECEIVER_EXPORTED);
     }
 
     // ──────────────────────────────────────────────

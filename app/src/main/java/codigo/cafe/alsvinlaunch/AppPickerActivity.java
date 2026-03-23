@@ -85,7 +85,7 @@ public class AppPickerActivity extends Activity {
         for (android.content.pm.ApplicationInfo appInfo : allInstalled) {
             if (addedPackages.contains(appInfo.packageName)) continue;
             if (appInfo.packageName.equals(myPkg)) continue;
-            if (appInfo.icon == 0) continue; // ← sin icono real = fuera
+
 
             Intent launchIntent = pm.getLaunchIntentForPackage(appInfo.packageName);
             if (launchIntent == null) continue; // ← sin activity lanzable = fuera

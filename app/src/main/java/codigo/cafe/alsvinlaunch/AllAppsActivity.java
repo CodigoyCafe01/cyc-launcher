@@ -58,25 +58,50 @@ public class AllAppsActivity extends Activity {
         });
     }
 
-    private List<AllAppsActivity.AppInfo> loadApps() {
+    private List<AppInfo> loadApps() {
         PackageManager pm = getPackageManager();
-        List<AllAppsActivity.AppInfo> apps = new ArrayList<>();
+        List<AppInfo> apps = new ArrayList<>();
         String myPkg = getPackageName();
+        java.util.Set<String> addedPackages = new java.util.HashSet<>();
 
+        // 1. Apps normales con launcher icon
         Intent launcherIntent = new Intent(Intent.ACTION_MAIN, null);
         launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> launcherApps = pm.queryIntentActivities(launcherIntent, 0);
 
         for (ResolveInfo ri : launcherApps) {
             if (ri.activityInfo.packageName.equals(myPkg)) continue;
-            if (ri.activityInfo.applicationInfo.icon == 0) continue; // ← sin icono = sistema
+            //if (ri.activityInfo.applicationInfo.icon == 0) continue;
 
-            AllAppsActivity.AppInfo info = new AllAppsActivity.AppInfo();
+            AppInfo info = new AppInfo();
             info.label = ri.loadLabel(pm).toString();
             info.packageName = ri.activityInfo.packageName;
             info.className = ri.activityInfo.name;
             info.icon = ri.loadIcon(pm);
             apps.add(info);
+            addedPackages.add(info.packageName);
+        }
+
+        // 2. Apps del sistema con icono real y launch intent (BT, Settings, etc.)
+        List<android.content.pm.ApplicationInfo> allInstalled =
+                pm.getInstalledApplications(PackageManager.GET_META_DATA);
+
+        for (android.content.pm.ApplicationInfo appInfo : allInstalled) {
+            if (addedPackages.contains(appInfo.packageName)) continue;
+            if (appInfo.packageName.equals(myPkg)) continue;
+            if (appInfo.icon == 0) continue; // sin icono real → fuera
+
+            Intent launchIntent = pm.getLaunchIntentForPackage(appInfo.packageName);
+            if (launchIntent == null) continue; // sin activity lanzable → fuera
+
+            ComponentName comp = launchIntent.getComponent();
+            AppInfo info = new AppInfo();
+            info.label = appInfo.loadLabel(pm).toString();
+            info.packageName = appInfo.packageName;
+            info.className = comp != null ? comp.getClassName() : "";
+            info.icon = appInfo.loadIcon(pm);
+            apps.add(info);
+            addedPackages.add(info.packageName);
         }
 
         Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));

@@ -308,11 +308,7 @@ public class MainActivity extends Activity {
             startActivity(new Intent(this, AllAppsActivity.class));
         });
 
-        findViewById(R.id.btn_all_apps).setOnLongClickListener(v -> {
-            abriendoApp = true;
-            startActivity(new Intent(this, DebugPackagesActivity.class));
-            return true;
-        });
+
     }
 
     private void configurarBotonSistema() {

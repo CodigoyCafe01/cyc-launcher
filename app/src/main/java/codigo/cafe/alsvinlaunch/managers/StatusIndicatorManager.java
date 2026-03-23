@@ -17,6 +17,8 @@ import android.net.wifi.WifiManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.core.content.ContextCompat;
+
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Timer;
@@ -153,7 +155,9 @@ public class StatusIndicatorManager {
         filtro.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         filtro.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         filtro.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-        actividad.registerReceiver(receptorWifi, filtro);
+        //actividad.registerReceiver(receptorWifi, filtro);
+        ContextCompat.registerReceiver(actividad, receptorWifi, filtro,
+                ContextCompat.RECEIVER_EXPORTED);
     }
 
     private void registrarReceptorBluetooth() {
@@ -195,7 +199,9 @@ public class StatusIndicatorManager {
         filtro.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         filtro.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         filtro.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        actividad.registerReceiver(receptorBluetooth, filtro);
+        //actividad.registerReceiver(receptorBluetooth, filtro);
+        ContextCompat.registerReceiver(actividad, receptorBluetooth, filtro,
+                ContextCompat.RECEIVER_EXPORTED);
     }
 
     /**
