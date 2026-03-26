@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import codigo.cafe.alsvinlaunch.model.AppInfo;
+
 public class AllAppsActivity extends Activity {
 
     private List<AppInfo> appList;
@@ -40,7 +42,7 @@ public class AllAppsActivity extends Activity {
                 AppInfo app = appList.get(position);
                 try {
                     Intent intent = new Intent();
-                    intent.setComponent(new ComponentName(app.packageName, app.className));
+                    intent.setComponent(new ComponentName(app.getPackageName(), app.getClassName()));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                 } catch (Exception e) {
@@ -64,82 +66,102 @@ public class AllAppsActivity extends Activity {
         String myPkg = getPackageName();
         java.util.Set<String> addedPackages = new java.util.HashSet<>();
 
-        // 1. Apps normales con launcher icon
-        Intent launcherIntent = new Intent(Intent.ACTION_MAIN, null);
-        launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> launcherApps = pm.queryIntentActivities(launcherIntent, 0);
-
-        for (ResolveInfo ri : launcherApps) {
-            if (ri.activityInfo.packageName.equals(myPkg)) continue;
-            //if (ri.activityInfo.applicationInfo.icon == 0) continue;
-
-            AppInfo info = new AppInfo();
-            info.label = ri.loadLabel(pm).toString();
-            info.packageName = ri.activityInfo.packageName;
-            info.className = ri.activityInfo.name;
-            info.icon = ri.loadIcon(pm);
-            apps.add(info);
-            addedPackages.add(info.packageName);
+        // Flag compatible con API 23+
+        // MATCH_ALL es API 23, no uses valores de API superiores directamente
+        int queryFlags;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            queryFlags = PackageManager.MATCH_ALL;
+        } else {
+            queryFlags = PackageManager.GET_DISABLED_COMPONENTS;
         }
 
-        // 2. Apps del sistema con icono real y launch intent (BT, Settings, etc.)
+        // 1. Apps con launcher icon
+        Intent launcherIntent = new Intent(Intent.ACTION_MAIN, null);
+        launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> launcherApps = pm.queryIntentActivities(launcherIntent, queryFlags);
+
+        for (ResolveInfo ri : launcherApps) {
+            if (ri.activityInfo == null) continue;
+            if (ri.activityInfo.packageName.equals(myPkg)) continue;
+
+            AppInfo info = new AppInfo();
+            info.setLabel(ri.loadLabel(pm).toString());
+            info.setPackageName(ri.activityInfo.packageName);
+            info.setClassName(ri.activityInfo.name);
+            info.setIcon(ri.loadIcon(pm));
+            apps.add(info);
+            addedPackages.add(info.getPackageName());
+        }
+
+        // 2. Apps instaladas con icono y launch intent (cubre sistema, BT, Settings, etc.)
+        int installedFlags = PackageManager.GET_META_DATA;
+        // MATCH_UNINSTALLED_PACKAGES se llama GET_UNINSTALLED_PACKAGES en API < 24
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            installedFlags |= PackageManager.MATCH_UNINSTALLED_PACKAGES;
+        } else {
+            //noinspection deprecation
+            installedFlags |= PackageManager.GET_UNINSTALLED_PACKAGES;
+        }
+
         List<android.content.pm.ApplicationInfo> allInstalled =
-                pm.getInstalledApplications(PackageManager.GET_META_DATA);
+                pm.getInstalledApplications(installedFlags);
 
         for (android.content.pm.ApplicationInfo appInfo : allInstalled) {
             if (addedPackages.contains(appInfo.packageName)) continue;
             if (appInfo.packageName.equals(myPkg)) continue;
-            if (appInfo.icon == 0) continue; // sin icono real → fuera
+            if (appInfo.icon == 0) continue;
 
             Intent launchIntent = pm.getLaunchIntentForPackage(appInfo.packageName);
-            if (launchIntent == null) continue; // sin activity lanzable → fuera
+            if (launchIntent == null) continue;
 
             ComponentName comp = launchIntent.getComponent();
             AppInfo info = new AppInfo();
-            info.label = appInfo.loadLabel(pm).toString();
-            info.packageName = appInfo.packageName;
-            info.className = comp != null ? comp.getClassName() : "";
-            info.icon = appInfo.loadIcon(pm);
+            info.setLabel(appInfo.loadLabel(pm).toString());
+            info.setPackageName(appInfo.packageName);
+            info.setClassName((comp != null) ? comp.getClassName() : "");
+            info.setIcon(appInfo.loadIcon(pm));
             apps.add(info);
-            addedPackages.add(info.packageName);
+            addedPackages.add(info.getPackageName());
+
         }
 
-        Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
+        Collections.sort(apps, (a, b) -> a.getLabel().compareToIgnoreCase(b.getLabel()));
         return apps;
     }
 
     private class AppsAdapter extends BaseAdapter {
         @Override
-        public int getCount() { return appList.size(); }
+        public int getCount() {
+            return appList.size();
+        }
 
         @Override
-        public Object getItem(int position) { return appList.get(position); }
+        public Object getItem(int position) {
+            return appList.get(position);
+        }
 
         @Override
-        public long getItemId(int position) { return position; }
+        public long getItemId(int position) {
+            return position;
+        }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = LayoutInflater.from(AllAppsActivity.this)
-                    .inflate(R.layout.item_app, parent, false);
+                        .inflate(R.layout.item_app, parent, false);
             }
 
             AppInfo app = appList.get(position);
             ImageView icon = (ImageView) convertView.findViewById(R.id.app_icon);
             TextView label = (TextView) convertView.findViewById(R.id.app_label);
 
-            icon.setImageDrawable(app.icon);
-            label.setText(app.label);
+            icon.setImageDrawable(app.getIcon());
+            label.setText(app.getLabel());
 
             return convertView;
         }
     }
 
-    static class AppInfo {
-        String label;
-        String packageName;
-        String className;
-        Drawable icon;
-    }
+
 }

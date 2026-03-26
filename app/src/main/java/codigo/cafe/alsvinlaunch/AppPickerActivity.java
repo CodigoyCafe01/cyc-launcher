@@ -21,9 +21,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import codigo.cafe.alsvinlaunch.model.AppInfo;
+
 public class AppPickerActivity extends Activity {
 
-    private List<AllAppsActivity.AppInfo> appList;
+    private List<AppInfo> appList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,11 +39,11 @@ public class AppPickerActivity extends Activity {
         grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                AllAppsActivity.AppInfo app = appList.get(position);
+                AppInfo app = appList.get(position);
                 Intent result = new Intent();
-                result.putExtra("package_name", app.packageName);
-                result.putExtra("class_name", app.className);
-                result.putExtra("app_label", app.label);
+                result.putExtra("package_name", app.getPackageName());
+                result.putExtra("class_name", app.getClassName());
+                result.putExtra("app_label", app.getLabel());
                 setResult(RESULT_OK, result);
                 finish();
             }
@@ -56,9 +58,9 @@ public class AppPickerActivity extends Activity {
         });
     }
 
-    private List<AllAppsActivity.AppInfo> loadApps() {
+    private List<AppInfo> loadApps() {
         PackageManager pm = getPackageManager();
-        List<AllAppsActivity.AppInfo> apps = new ArrayList<>();
+        List<AppInfo> apps = new ArrayList<>();
         String myPkg = getPackageName();
         java.util.Set<String> addedPackages = new java.util.HashSet<>();
 
@@ -69,13 +71,14 @@ public class AppPickerActivity extends Activity {
 
         for (ResolveInfo ri : launcherApps) {
             if (ri.activityInfo.packageName.equals(myPkg)) continue;
-            AllAppsActivity.AppInfo info = new AllAppsActivity.AppInfo();
-            info.label = ri.loadLabel(pm).toString();
-            info.packageName = ri.activityInfo.packageName;
-            info.className = ri.activityInfo.name;
-            info.icon = ri.loadIcon(pm);
+
+            AppInfo info = new AppInfo();
+            info.setLabel(ri.loadLabel(pm).toString());
+            info.setPackageName(ri.activityInfo.packageName);
+            info.setClassName(ri.activityInfo.name);
+            info.setIcon(ri.loadIcon(pm));
             apps.add(info);
-            addedPackages.add(info.packageName);
+            addedPackages.add(info.getPackageName());
         }
 
         // 2. Apps del sistema con icono real (BT, Settings, etc.)
@@ -91,16 +94,16 @@ public class AppPickerActivity extends Activity {
             if (launchIntent == null) continue; // ← sin activity lanzable = fuera
 
             ComponentName comp = launchIntent.getComponent();
-            AllAppsActivity.AppInfo info = new AllAppsActivity.AppInfo();
-            info.label = appInfo.loadLabel(pm).toString();
-            info.packageName = appInfo.packageName;
-            info.className = comp != null ? comp.getClassName() : "";
-            info.icon = appInfo.loadIcon(pm);
+            AppInfo info = new AppInfo();
+            info.setLabel(appInfo.loadLabel(pm).toString());
+            info.setPackageName(appInfo.packageName);
+            info.setClassName((comp != null) ? comp.getClassName() : "");
+            info.setIcon(appInfo.loadIcon(pm));
             apps.add(info);
-            addedPackages.add(info.packageName);
+            addedPackages.add(info.getPackageName());
         }
 
-        Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
+        Collections.sort(apps, (a, b) -> a.getLabel().compareToIgnoreCase(b.getLabel()));
         return apps;
     }
 
@@ -121,12 +124,12 @@ public class AppPickerActivity extends Activity {
                     .inflate(R.layout.item_app, parent, false);
             }
 
-            AllAppsActivity.AppInfo app = appList.get(position);
+            AppInfo app = appList.get(position);
             ImageView icon = (ImageView) convertView.findViewById(R.id.app_icon);
             TextView label = (TextView) convertView.findViewById(R.id.app_label);
 
-            icon.setImageDrawable(app.icon);
-            label.setText(app.label);
+            icon.setImageDrawable(app.getIcon());
+            label.setText(app.getLabel());
 
             return convertView;
         }
