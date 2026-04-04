@@ -28,7 +28,6 @@ import codigo.cafe.alsvinlaunch.managers.PermissionsManager;
 import codigo.cafe.alsvinlaunch.managers.ShortcutManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
 import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
-import codigo.cafe.alsvinlaunch.managers.ThemeManager;
 
 /**
  * Actividad principal del launcher.
@@ -42,7 +41,6 @@ public class MainActivity extends Activity {
 
     // ── Managers ──
     private ClockManager clockManager;
-    private ThemeManager themeManager;
     private ShortcutManager shortcutManager;
     private SystemPanelManager systemPanelManager;
     private MediaWidgetManager mediaWidgetManager;
@@ -58,11 +56,13 @@ public class MainActivity extends Activity {
     private boolean modoColorDinamico = false;
     private int colorActualFondo = COLOR_BASE_FONDO;
     private boolean primerResume = true;
+    private boolean pantallaBloqueada = false;
 
     // ── Vistas directas ──
     private TextView textoReloj;
     private TextView textoFecha;
-    private ImageView botonTema;
+    private ImageView botonBloqueo;
+    private View topBar;
 
     private PermissionsManager permissionsManager;
     private SharedPreferences prefs;
@@ -82,12 +82,12 @@ public class MainActivity extends Activity {
         // ── Buscar vistas ──
         textoReloj = findViewById(R.id.clock_text);
         textoFecha = findViewById(R.id.date_text);
-        botonTema = findViewById(R.id.btn_theme_toggle);
+        botonBloqueo = findViewById(R.id.btn_theme_toggle);
+        topBar = findViewById(R.id.top_bar);
         LinearLayout panelSistema = findViewById(R.id.system_panel);
 
         // ── Inicializar managers ──
         clockManager = new ClockManager(this, textoReloj, textoFecha);
-        themeManager = new ThemeManager(this, prefs);
         kioskManager = new KioskManager(this, prefs);
 
         permissionsManager = new PermissionsManager(this);
@@ -158,7 +158,7 @@ public class MainActivity extends Activity {
         systemPanelManager.construir();
 
         configurarReloj();
-        configurarBotonTema();
+        configurarBotonBloqueo();
         configurarBotonApps();
         configurarBotonSistema();
         configurarIndicadoresEstado();
@@ -166,7 +166,6 @@ public class MainActivity extends Activity {
 
         // ── Carga inicial de datos (solo onCreate, no onResume) ──
         shortcutManager.cargar();
-        aplicarTema();
         permissionsManager.verificar();
     }
 
@@ -205,7 +204,6 @@ public class MainActivity extends Activity {
         statusIndicatorManager.actualizar();
 
         if (primerResume) {
-            aplicarTema();
             permissionsManager.verificar();
             primerResume = false;
         }
@@ -249,7 +247,7 @@ public class MainActivity extends Activity {
 
         textoReloj = null;
         textoFecha = null;
-        botonTema = null;
+        botonBloqueo = null;
     }
 
     // ══════════════════════════════════════
@@ -287,13 +285,10 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void configurarBotonTema() {
-        botonTema.setOnClickListener(v -> {
-            themeManager.alternar();
-            aplicarTema();
-        });
+    private void configurarBotonBloqueo() {
+        botonBloqueo.setOnClickListener(v -> alternarBloqueo());
 
-        botonTema.setOnLongClickListener(v -> {
+        botonBloqueo.setOnLongClickListener(v -> {
             kioskManager.alternar();
             mostrarMensaje(kioskManager.isActivo()
                     ? "Modo kiosco activado" : "Modo kiosco desactivado");
@@ -440,17 +435,37 @@ public class MainActivity extends Activity {
     }
 
     // ══════════════════════════════════════
-    //  TEMA
+    //  BLOQUEO DE PANTALLA
     // ══════════════════════════════════════
 
-    private void aplicarTema() {
-        themeManager.aplicar(
-                findViewById(R.id.root_layout),
-                textoReloj, textoFecha, botonTema,
-                shortcutManager.getVistasAccesos(),
-                shortcutManager.getIdsNombres(),
-                shortcutManager.getCantidadAccesos()
-        );
+    private void alternarBloqueo() {
+        if (pantallaBloqueada) {
+            desbloquearPantalla();
+        } else {
+            bloquearPantalla();
+        }
+    }
+
+    private void bloquearPantalla() {
+        pantallaBloqueada = true;
+        topBar.setVisibility(View.GONE);
+        findViewById(R.id.widget_reproductor).setVisibility(View.GONE);
+        findViewById(R.id.shortcuts_container).setVisibility(View.GONE);
+        findViewById(R.id.root_layout).setBackgroundColor(0xFF000000);
+
+        // Tocar la pantalla desbloquea
+        findViewById(R.id.root_layout).setOnClickListener(v -> desbloquearPantalla());
+    }
+
+    private void desbloquearPantalla() {
+        pantallaBloqueada = false;
+        topBar.setVisibility(View.VISIBLE);
+        findViewById(R.id.widget_reproductor).setVisibility(View.VISIBLE);
+        findViewById(R.id.shortcuts_container).setVisibility(View.VISIBLE);
+        findViewById(R.id.root_layout).setBackgroundColor(COLOR_BASE_FONDO);
+
+        // Restaurar click original (ocultar panel sistema)
+        findViewById(R.id.root_layout).setOnClickListener(v -> systemPanelManager.ocultar());
     }
 
     // ══════════════════════════════════════
