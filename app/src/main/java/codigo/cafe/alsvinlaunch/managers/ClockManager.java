@@ -1,16 +1,22 @@
 package codigo.cafe.alsvinlaunch.managers;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Gestiona la actualización del reloj y la fecha en pantalla.
+ * Usa Handler (reloj monotónico) en lugar de Timer (reloj de pared)
+ * para evitar congelamientos cuando el sistema corrige la fecha.
  */
 public class ClockManager {
 
@@ -19,8 +25,28 @@ public class ClockManager {
     private final Activity actividad;
     private final TextView textoReloj;
     private final TextView textoFecha;
-    private Timer temporizador;
-    private boolean corriendo = false; // ← guard
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean corriendo = false;
+
+    /**
+     * Receiver que detecta cambios de fecha/hora del sistema
+     * y actualiza el reloj inmediatamente.
+     */
+    private final BroadcastReceiver receptorCambioTiempo = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            actualizar();
+        }
+    };
+
+    private final Runnable tareaActualizar = new Runnable() {
+        @Override
+        public void run() {
+            if (!corriendo) return;
+            actualizar();
+            handler.postDelayed(this, INTERVALO_ACTUALIZACION);
+        }
+    };
 
     public ClockManager(Activity actividad, TextView textoReloj, TextView textoFecha) {
         this.actividad = actividad;
@@ -29,31 +55,35 @@ public class ClockManager {
     }
 
     public void iniciar() {
-        if (corriendo) return; // ← si ya corre, no crear otro
+        if (corriendo) return;
 
         corriendo = true;
-        temporizador = new Timer();
-        temporizador.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                actividad.runOnUiThread(() -> actualizar());
-            }
-        }, 0, INTERVALO_ACTUALIZACION);
+        actualizar();
+        handler.postDelayed(tareaActualizar, INTERVALO_ACTUALIZACION);
+
+        // Escuchar cambios de fecha/hora para actualizar de inmediato
+        IntentFilter filtro = new IntentFilter();
+        filtro.addAction(Intent.ACTION_TIME_CHANGED);
+        filtro.addAction(Intent.ACTION_DATE_CHANGED);
+        filtro.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+        actividad.registerReceiver(receptorCambioTiempo, filtro);
     }
 
     public void actualizar() {
-        if (textoReloj == null || textoFecha == null) return; // ← null safety
+        if (textoReloj == null || textoFecha == null) return;
         Date ahora = new Date();
         textoReloj.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(ahora));
         textoFecha.setText(new SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()).format(ahora));
     }
 
     public void detener() {
-        corriendo = false; // ← resetear guard
-        if (temporizador != null) {
-            temporizador.cancel();
-            temporizador.purge(); // ← limpiar tareas pendientes en la cola
-            temporizador = null;
+        corriendo = false;
+        handler.removeCallbacks(tareaActualizar);
+
+        try {
+            actividad.unregisterReceiver(receptorCambioTiempo);
+        } catch (IllegalArgumentException ignored) {
+            // Receiver no estaba registrado
         }
     }
 }
