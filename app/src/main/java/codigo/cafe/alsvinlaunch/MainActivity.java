@@ -38,41 +38,41 @@ import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
  */
 public class MainActivity extends Activity {
 
-    private static final String NOMBRE_PREFS = "alsvin_launcher_prefs";
+    private static final String NOMBRE_PREFS     = "alsvin_launcher_prefs";
     private static final String PREF_COLOR_DINAMICO = "color_dinamico";
-    private static final int COLOR_BASE_FONDO = 0xFF1A1A2E;
+    private static final int    COLOR_BASE_FONDO = 0xFF1A1A2E;
 
     // Código de solicitud para el permiso de ubicación
     private static final int SOLICITUD_PERMISO_GPS = 200;
 
     // ── Managers ──
-    private ClockManager clockManager;
-    private ShortcutManager shortcutManager;
-    private SystemPanelManager systemPanelManager;
-    private MediaWidgetManager mediaWidgetManager;
-    private StatusIndicatorManager statusIndicatorManager;
-    private ContactsDialogHelper contactsDialogHelper;
-    private KioskManager kioskManager;
+    private ClockManager            clockManager;
+    private ShortcutManager         shortcutManager;
+    private SystemPanelManager      systemPanelManager;
+    private MediaWidgetManager      mediaWidgetManager;
+    private StatusIndicatorManager  statusIndicatorManager;
+    private ContactsDialogHelper    contactsDialogHelper;
+    private KioskManager            kioskManager;
     private BluetoothContactsManager btContactsManager;
-    private BtNotifReceiverManager btNotifReceiver;
-    private NotifPanelManager notifPanelManager;
-    private SpeedManager speedManager;           // ← NUEVO
+    private BtNotifReceiverManager  btNotifReceiver;
+    private NotifPanelManager       notifPanelManager;
+    private SpeedManager            speedManager;           // ← NUEVO
 
     // ── Estado ──
-    private boolean abriendoApp = false;
+    private boolean abriendoApp      = false;
     private boolean modoColorDinamico = false;
-    private int colorActualFondo = COLOR_BASE_FONDO;
-    private boolean primerResume = true;
+    private int     colorActualFondo  = COLOR_BASE_FONDO;
+    private boolean primerResume      = true;
     private boolean pantallaBloqueada = false;
 
     // ── Vistas directas ──
-    private TextView textoReloj;
-    private TextView textoFecha;
+    private TextView  textoReloj;
+    private TextView  textoFecha;
     private ImageView botonBloqueo;
-    private View topBar;
+    private View      topBar;
 
     private PermissionsManager permissionsManager;
-    private SharedPreferences prefs;
+    private SharedPreferences  prefs;
 
     // ══════════════════════════════════════
     //  CICLO DE VIDA — onCreate
@@ -87,16 +87,16 @@ public class MainActivity extends Activity {
         prefs = getSharedPreferences(NOMBRE_PREFS, MODE_PRIVATE);
 
         // ── Buscar vistas ──
-        textoReloj = findViewById(R.id.clock_text);
-        textoFecha = findViewById(R.id.date_text);
+        textoReloj  = findViewById(R.id.clock_text);
+        textoFecha  = findViewById(R.id.date_text);
         botonBloqueo = findViewById(R.id.btn_theme_toggle);
-        topBar = findViewById(R.id.top_bar);
+        topBar       = findViewById(R.id.top_bar);
         LinearLayout panelSistema = findViewById(R.id.system_panel);
 
         // ── Inicializar managers ──
-        clockManager = new ClockManager(this, textoReloj, textoFecha);
-        kioskManager = new KioskManager(this, prefs);
-        speedManager = new SpeedManager(this);               // ← NUEVO
+        clockManager  = new ClockManager(this, textoReloj, textoFecha);
+        kioskManager  = new KioskManager(this, prefs);
+        speedManager  = new SpeedManager(this);               // ← NUEVO
 
         permissionsManager = new PermissionsManager(this);
         permissionsManager.setOnAbrirAjustesListener(() -> abriendoApp = true);
@@ -109,31 +109,17 @@ public class MainActivity extends Activity {
 
         shortcutManager = new ShortcutManager(this, prefs);
         shortcutManager.setOnAppOpenListener(new ShortcutManager.OnAppOpenListener() {
-            @Override
-            public void onAppOpening() {
-                abriendoApp = true;
-            }
-
-            @Override
-            public void onAppOpenFailed() {
-                abriendoApp = false;
-            }
+            @Override public void onAppOpening()  { abriendoApp = true;  }
+            @Override public void onAppOpenFailed() { abriendoApp = false; }
         });
 
         systemPanelManager = new SystemPanelManager(this, panelSistema);
         systemPanelManager.setOnAppOpenListener(new SystemPanelManager.OnAppOpenListener() {
-            @Override
-            public void onAppOpening() {
-                abriendoApp = true;
-            }
-
-            @Override
-            public void onAppOpenFailed() {
-                abriendoApp = false;
-            }
+            @Override public void onAppOpening()  { abriendoApp = true;  }
+            @Override public void onAppOpenFailed() { abriendoApp = false; }
         });
 
-        btContactsManager = new BluetoothContactsManager(this);
+        btContactsManager  = new BluetoothContactsManager(this);
         mediaWidgetManager = new MediaWidgetManager(this);
         statusIndicatorManager = new StatusIndicatorManager(this);
 
@@ -142,7 +128,7 @@ public class MainActivity extends Activity {
 
         // ── Notificaciones BT (Notisvin) ──
         notifPanelManager = new NotifPanelManager(this);
-        btNotifReceiver = new BtNotifReceiverManager(notif ->
+        btNotifReceiver   = new BtNotifReceiverManager(notif ->
                 notifPanelManager.agregarNotif(notif));
         btNotifReceiver.iniciar();
 
@@ -153,7 +139,6 @@ public class MainActivity extends Activity {
             public void onColor(int colorDominante) {
                 if (modoColorDinamico) animarColorFondo(colorDominante);
             }
-
             @Override
             public void onSinColor() {
                 if (modoColorDinamico) animarColorFondo(COLOR_BASE_FONDO);
@@ -259,8 +244,8 @@ public class MainActivity extends Activity {
 
         if (btNotifReceiver != null) btNotifReceiver.detener();
 
-        textoReloj = null;
-        textoFecha = null;
+        textoReloj   = null;
+        textoFecha   = null;
         botonBloqueo = null;
     }
 
@@ -289,7 +274,7 @@ public class MainActivity extends Activity {
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    new String[]{ Manifest.permission.ACCESS_FINE_LOCATION },
                     SOLICITUD_PERMISO_GPS);
         }
     }
@@ -439,7 +424,7 @@ public class MainActivity extends Activity {
                 return;
             }
 
-            int liberados = 0;
+            int    liberados  = 0;
             String appsMatadas = "";
 
             for (ActivityManager.RunningAppProcessInfo proceso : procesos) {
@@ -451,16 +436,16 @@ public class MainActivity extends Activity {
                 }
             }
 
-            final int totalLiberados = liberados;
-            final String listaApps = appsMatadas;
+            final int    totalLiberados = liberados;
+            final String listaApps      = appsMatadas;
             new android.os.Handler().postDelayed(() -> {
                 am.getMemoryInfo(memInfo);
                 long ramLibreDespues = memInfo.availMem / (1024 * 1024);
-                long ganancia = ramLibreDespues - ramLibreAntes;
+                long ganancia        = ramLibreDespues - ramLibreAntes;
 
                 mostrarMensaje("✓ " + totalLiberados + " apps cerradas\n"
-                        + "RAM antes: " + ramLibreAntes + "MB\n"
-                        + "RAM ahora: " + ramLibreDespues + "MB\n"
+                        + "RAM antes: "  + ramLibreAntes   + "MB\n"
+                        + "RAM ahora: "  + ramLibreDespues + "MB\n"
                         + (ganancia > 0
                         ? "+" + ganancia + "MB liberados"
                         : "sin cambio"));
@@ -477,15 +462,15 @@ public class MainActivity extends Activity {
 
     private void alternarBloqueo() {
         if (pantallaBloqueada) desbloquearPantalla();
-        else bloquearPantalla();
+        else                   bloquearPantalla();
     }
 
     private void bloquearPantalla() {
         pantallaBloqueada = true;
         topBar.setVisibility(View.GONE);
-        mediaWidgetManager.ocultar();                  // ← limpio, sin tocar R.id
+        mediaWidgetManager.ocultar();
+        speedManager.ocultar();                        // ← limpio, sin tocar R.id
         findViewById(R.id.shortcuts_container).setVisibility(View.GONE);
-        findViewById(R.id.speed_text).setVisibility(View.GONE);
         findViewById(R.id.root_layout).setBackgroundColor(0xFF000000);
         findViewById(R.id.root_layout).setOnClickListener(v -> desbloquearPantalla());
     }
@@ -493,9 +478,9 @@ public class MainActivity extends Activity {
     private void desbloquearPantalla() {
         pantallaBloqueada = false;
         topBar.setVisibility(View.VISIBLE);
-        mediaWidgetManager.mostrar();                  // ← solo muestra si hay música activa
+        mediaWidgetManager.mostrar();
+        speedManager.mostrar();                        // ← SpeedManager decide si mostrar
         findViewById(R.id.shortcuts_container).setVisibility(View.VISIBLE);
-        speedManager.iniciar();                        // SpeedManager decide si mostrar
         findViewById(R.id.root_layout).setBackgroundColor(COLOR_BASE_FONDO);
         findViewById(R.id.root_layout).setOnClickListener(v -> systemPanelManager.ocultar());
     }

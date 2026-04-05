@@ -14,37 +14,37 @@ import codigo.cafe.alsvinlaunch.R;
 
 /**
  * SpeedManager — obtiene velocidad por GPS y actualiza el TextView speed_text.
- * <p>
+ *
  * Ciclo de vida esperado:
- * onCreate  → new SpeedManager(...)
- * onStart   → iniciar()
- * onStop    → detener()
- * onDestroy → destruir()
- * <p>
+ *   onCreate  → new SpeedManager(...)
+ *   onStart   → iniciar()
+ *   onStop    → detener()
+ *   onDestroy → destruir()
+ *
  * Si no hay permiso ACCESS_FINE_LOCATION o el GPS no está disponible,
  * el widget se oculta automáticamente (GONE).
  */
 public class SpeedManager {
 
     // Actualizar cada 1 segundo, mínimo 0 metros de desplazamiento
-    private static final long INTERVALO_MS = 1000;
+    private static final long  INTERVALO_MS  = 1000;
     private static final float DISTANCIA_MIN = 0f;
 
     // Por debajo de este umbral se muestra 0 (filtra ruido GPS en reposo)
     private static final float UMBRAL_MS = 0.5f; // ~1.8 km/h
 
-    private final Activity actividad;
-    private final TextView vistaVelocidad;
-    private LocationManager locationManager;
-    private LocationListener listener;
-    private boolean activo = false;
+    private final Activity       actividad;
+    private final TextView       vistaVelocidad;
+    private       LocationManager locationManager;
+    private       LocationListener listener;
+    private       boolean         activo = false;
 
     private final View contenedorVelocidad;  // LinearLayout speed_text
 
     public SpeedManager(Activity actividad) {
-        this.actividad = actividad;
+        this.actividad           = actividad;
         this.contenedorVelocidad = actividad.findViewById(R.id.speed_text);
-        this.vistaVelocidad = actividad.findViewById(R.id.speed_number);
+        this.vistaVelocidad      = actividad.findViewById(R.id.speed_number);
     }
 
     // ── Ciclo de vida ──────────────────────────────────────────────
@@ -73,19 +73,9 @@ public class SpeedManager {
             }
 
             // Android 6 requiere estos métodos aunque estén vacíos
-            @Override
-            public void onStatusChanged(String p, int s, Bundle e) {
-            }
-
-            @Override
-            public void onProviderEnabled(String provider) {
-                mostrarWidget();
-            }
-
-            @Override
-            public void onProviderDisabled(String provider) {
-                ocultarWidget();
-            }
+            @Override public void onStatusChanged(String p, int s, Bundle e) {}
+            @Override public void onProviderEnabled(String provider)  { mostrarWidget(); }
+            @Override public void onProviderDisabled(String provider) { ocultarWidget(); }
         };
 
         try {
@@ -104,8 +94,7 @@ public class SpeedManager {
         if (locationManager != null && listener != null) {
             try {
                 locationManager.removeUpdates(listener);
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
         }
         activo = false;
     }
@@ -113,14 +102,12 @@ public class SpeedManager {
     public void destruir() {
         detener();
         locationManager = null;
-        listener = null;
+        listener        = null;
     }
 
     // ── Visibilidad pública (bloqueo de pantalla) ──────────────────
 
-    /**
-     * Oculta el widget sin detener el GPS.
-     */
+    /** Oculta el widget sin detener el GPS. */
     public void ocultar() {
         ocultarWidget();
     }
@@ -144,8 +131,8 @@ public class SpeedManager {
         if (vistaVelocidad == null) return;
 
         if (location.hasSpeed()) {
-            float ms = location.getSpeed();
-            int kmh = (ms < UMBRAL_MS) ? 0 : Math.round(ms * 3.6f);
+            float ms  = location.getSpeed();
+            int   kmh = (ms < UMBRAL_MS) ? 0 : Math.round(ms * 3.6f);
             if (kmh == 0) {
                 ocultarWidget();
             } else {
@@ -159,15 +146,22 @@ public class SpeedManager {
 
     private void mostrarWidget() {
         if (contenedorVelocidad != null) {
-            actividad.runOnUiThread(() ->
-                    contenedorVelocidad.setVisibility(View.VISIBLE));
+            actividad.runOnUiThread(() -> {
+                contenedorVelocidad.setVisibility(View.VISIBLE);
+                // Activar espejo derecho para que el reloj siga centrado
+                View espejo = actividad.findViewById(R.id.espejo_derecho);
+                if (espejo != null) espejo.setVisibility(View.VISIBLE);
+            });
         }
     }
 
     private void ocultarWidget() {
         if (contenedorVelocidad != null) {
-            actividad.runOnUiThread(() ->
-                    contenedorVelocidad.setVisibility(View.GONE));
+            actividad.runOnUiThread(() -> {
+                contenedorVelocidad.setVisibility(View.GONE);
+                View espejo = actividad.findViewById(R.id.espejo_derecho);
+                if (espejo != null) espejo.setVisibility(View.GONE);
+            });
         }
     }
 

@@ -12,7 +12,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Barra superior: bloqueo + estado + sistema -->
+        <!-- Barra superior -->
         <LinearLayout
             android:id="@+id/top_bar"
             android:layout_width="match_parent"
@@ -57,7 +57,6 @@
                     android:layout_marginStart="5dp" />
             </LinearLayout>
 
-            <!-- Indicador WiFi -->
             <LinearLayout
                 android:id="@+id/indicador_wifi"
                 android:layout_width="wrap_content"
@@ -90,7 +89,6 @@
                     android:maxWidth="100dp" />
             </LinearLayout>
 
-            <!-- Indicador Bluetooth -->
             <LinearLayout
                 android:id="@+id/indicador_bluetooth"
                 android:layout_width="wrap_content"
@@ -123,7 +121,6 @@
                     android:maxWidth="120dp" />
             </LinearLayout>
 
-            <!-- Botón contactos rápidos -->
             <LinearLayout
                 android:id="@+id/boton_contactos"
                 android:layout_width="36dp"
@@ -151,38 +148,51 @@
 
         <!-- ═══════════════════════════════════════════════════
              Sección central: Velocímetro + Reloj + Reproductor
+
+             Truco de simetría: hay un "espejo" invisible del lado
+             opuesto a cada widget lateral con el mismo peso.
+             El reloj (weight=2) siempre queda centrado sin importar
+             cuáles laterales están VISIBLE o GONE.
+
+             [espejo-der 0.9] [speed 0.9] [reloj 2] [reproductor 0.9] [espejo-izq 0.9]
              ═══════════════════════════════════════════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="horizontal"
-            android:gravity="center"
+            android:gravity="center_vertical"
             android:paddingBottom="10dp">
 
-            <!-- ── Bloque velocímetro ── -->
+            <!-- Espejo invisible del reproductor (opuesto derecho→izquierdo)
+                 Cuando reproductor=VISIBLE este espejo=VISIBLE para balancear -->
+            <View
+                android:id="@+id/espejo_izquierdo"
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="0.9"
+                android:visibility="gone" />
 
+            <!-- ── Velocímetro ── -->
             <LinearLayout
                 android:id="@+id/speed_text"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="0.9"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:paddingEnd="12dp"
-                android:visibility="visible">
+                android:visibility="gone">
 
-                <!-- Número grande -->
                 <TextView
                     android:id="@+id/speed_number"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="--"
                     android:textColor="#FFFFFF"
-                    android:textSize="64sp"
+                    android:textSize="56sp"
                     android:fontFamily="sans-serif-thin"
                     android:lineSpacingMultiplier="0.9" />
 
-                <!-- Etiqueta km/h -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -192,36 +202,31 @@
                     android:letterSpacing="0.15"
                     android:layout_marginTop="-4dp" />
 
-                <!-- Barra de progreso velocidad (max 120 km/h) -->
                 <LinearLayout
-                    android:layout_width="72dp"
+                    android:layout_width="60dp"
                     android:layout_height="4dp"
                     android:layout_marginTop="8dp"
                     android:background="#1E2140"
                     android:clipChildren="true">
-
                     <View
                         android:id="@+id/speed_bar"
                         android:layout_width="0dp"
                         android:layout_height="4dp"
                         android:background="#4A50D0"
                         android:layout_weight="0" />
-
-                    <!-- Peso invisible para completar la barra -->
                     <View
                         android:layout_width="0dp"
                         android:layout_height="4dp"
                         android:layout_weight="1" />
                 </LinearLayout>
-
             </LinearLayout>
 
-            <!-- ── Reloj ── -->
+            <!-- ── Reloj — peso fijo, siempre centrado ── -->
             <LinearLayout
                 android:id="@+id/clock_section"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="2"
                 android:gravity="center"
                 android:orientation="vertical">
 
@@ -241,7 +246,7 @@
                         android:fontFamily="sans-serif-thin"
                         android:text="12:00"
                         android:textColor="#FFFFFFFF"
-                        android:textSize="80sp" />
+                        android:textSize="72sp" />
 
                     <TextView
                         android:id="@+id/date_text"
@@ -250,53 +255,46 @@
                         android:layout_marginTop="4dp"
                         android:text="Lun, 1 Ene 2026"
                         android:textColor="#B0B0B0"
-                        android:textSize="20sp" />
+                        android:textSize="16sp" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- ── Reproductor rediseñado ── -->
+            <!-- ── Reproductor ── -->
             <LinearLayout
                 android:id="@+id/widget_reproductor"
                 android:foreground="?android:attr/selectableItemBackground"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="0.70"
-                android:minWidth="260dp"
+                android:layout_weight="0.9"
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="@drawable/shortcut_bg"
-                android:padding="16dp"
-                android:layout_marginTop="10dp"
-
-                android:layout_marginBottom="10dp"
+                android:padding="10dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:visibility="visible">
+                android:visibility="gone">
 
-                <!-- Fila superior: portada + título/artista -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
 
-                    <!-- Portada del álbum con esquinas redondeadas -->
                     <ImageView
                         android:id="@+id/reproductor_icono"
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
                         android:src="@drawable/ic_music"
                         android:scaleType="centerCrop"
                         android:background="@drawable/shortcut_bg"
                         android:padding="6dp" />
 
-                    <!-- Título y artista -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="10dp"
                         android:layout_marginEnd="4dp">
 
                         <TextView
@@ -305,7 +303,7 @@
                             android:layout_height="wrap_content"
                             android:text=""
                             android:textColor="#FFFFFF"
-                            android:textSize="15sp"
+                            android:textSize="14sp"
                             android:textStyle="bold"
                             android:maxLines="1"
                             android:ellipsize="marquee"
@@ -321,22 +319,20 @@
                             android:layout_height="wrap_content"
                             android:text=""
                             android:textColor="#7A7FA8"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:maxLines="1"
                             android:ellipsize="end"
                             android:layout_marginTop="3dp" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Separador sutil -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="#1E2140"
-                    android:layout_marginTop="14dp"
-                    android:layout_marginBottom="10dp" />
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="8dp" />
 
-                <!-- Fila inferior: controles centrados -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -345,32 +341,31 @@
 
                     <ImageView
                         android:id="@+id/btn_anterior"
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
                         android:src="@drawable/ic_anterior"
                         android:padding="8dp"
                         android:background="?android:attr/selectableItemBackgroundBorderless"
                         android:clickable="true"
                         android:focusable="true" />
 
-                    <!-- Botón play con fondo destacado -->
                     <ImageView
                         android:id="@+id/btn_play_pausa"
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
                         android:src="@drawable/ic_play"
                         android:padding="10dp"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginEnd="12dp"
-
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:background="@drawable/shortcut_bg_accent"
                         android:clickable="true"
                         android:focusable="true"
                         android:elevation="2dp" />
 
                     <ImageView
                         android:id="@+id/btn_siguiente"
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
                         android:src="@drawable/ic_siguiente"
                         android:padding="8dp"
                         android:background="?android:attr/selectableItemBackgroundBorderless"
@@ -378,6 +373,16 @@
                         android:focusable="true" />
                 </LinearLayout>
             </LinearLayout>
+
+            <!-- Espejo invisible del velocímetro (opuesto izquierdo→derecho)
+                 Cuando speed=VISIBLE este espejo=VISIBLE para balancear -->
+            <View
+                android:id="@+id/espejo_derecho"
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="0.9"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <!-- Shortcuts -->

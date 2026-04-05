@@ -148,6 +148,8 @@ public class MediaWidgetManager {
      */
     public void ocultar() {
         widgetReproductor.setVisibility(View.GONE);
+        View espejo = actividad.findViewById(R.id.espejo_izquierdo);
+        if (espejo != null) espejo.setVisibility(View.GONE);
     }
 
     /**
@@ -157,6 +159,8 @@ public class MediaWidgetManager {
     public void mostrar() {
         if (controladorActual != null) {
             widgetReproductor.setVisibility(View.VISIBLE);
+            View espejo = actividad.findViewById(R.id.espejo_izquierdo);
+            if (espejo != null) espejo.setVisibility(View.VISIBLE);
         }
         actualizar();
     }
@@ -316,6 +320,8 @@ public class MediaWidgetManager {
         controladorActual = null;
         estaReproduciendo = false;
         widgetReproductor.setVisibility(View.GONE);
+        View espejo = actividad.findViewById(R.id.espejo_izquierdo);
+        if (espejo != null) espejo.setVisibility(View.GONE);
         if (colorListener != null) colorListener.onSinColor();
     }
 
@@ -347,6 +353,8 @@ public class MediaWidgetManager {
 
     private void mostrarWidget(String titulo, String artista) {
         widgetReproductor.setVisibility(View.VISIBLE);
+        View espejo = actividad.findViewById(R.id.espejo_izquierdo);
+        if (espejo != null) espejo.setVisibility(View.VISIBLE);
         reproductorTitulo.setText(titulo);
         reproductorTitulo.setSelected(true);
         reproductorArtista.setText(artista != null ? artista : "");
