@@ -91,7 +91,6 @@
             </LinearLayout>
 
             <!-- Indicador Bluetooth -->
-            <!-- Indicador Bluetooth -->
             <LinearLayout
                 android:id="@+id/indicador_bluetooth"
                 android:layout_width="wrap_content"
@@ -148,28 +147,11 @@
                 android:layout_weight="1" />
 
 
-            <LinearLayout
-                android:id="@+id/fab_clear_apps"
-                android:background="@drawable/fab_bg_clear"
-                android:layout_width="50dp"
-                android:layout_height="48dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:layout_marginEnd="8dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:elevation="6dp">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_clear_apps" />
-            </LinearLayout>
         </LinearLayout>
 
-        <!-- Sección superior: Reloj + Reproductor -->
+        <!-- ═══════════════════════════════════════════════════
+             Sección central: Velocímetro + Reloj + Reproductor
+             ═══════════════════════════════════════════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -178,68 +160,63 @@
             android:gravity="center"
             android:paddingBottom="10dp">
 
-            <!-- <LinearLayout
-               android:id="@+id/notif_panel_container"
-               android:visibility="invisible"
-               android:layout_width="280dp"
-               android:layout_height="wrap_content"
-               android:layout_gravity="bottom|start"
-               android:layout_marginStart="16dp"
-               android:layout_marginBottom="16dp"
-               android:orientation="vertical"
-               android:background="@drawable/shortcut_bg"
-               android:elevation="4dp">
+            <!-- ── Bloque velocímetro ── -->
 
-              Header notificaciones
-               <LinearLayout
-                   android:layout_width="match_parent"
-                   android:layout_height="36dp"
-                   android:orientation="horizontal"
-                   android:gravity="center_vertical"
-                   android:paddingStart="12dp"
-                   android:paddingEnd="4dp"
+            <LinearLayout
+                android:id="@+id/speed_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingEnd="12dp"
+                android:visibility="visible">
 
-                   android:background="#1AFFFFFF">
-
-                   <ImageView
-                       android:layout_width="14dp"
-                       android:layout_height="14dp"
-                       android:src="@drawable/ic_bt_off"
-                       android:alpha="0.6" />
-
-                   <TextView
-                       android:layout_width="0dp"
-                       android:layout_height="wrap_content"
-                       android:layout_weight="1"
-                       android:text="Notificaciones"
-                       android:textColor="#808080"
-                       android:textSize="10sp"
-                       android:letterSpacing="0.08"
-                       android:layout_marginStart="6dp" />
--->
-                    <!-- Botón limpiar
-                    <TextView
-                        android:id="@+id/btn_limpiar_notifs"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:text="✕"
-                        android:textColor="#505050"
-                        android:textSize="13sp"
-                        android:gravity="center"
-                        android:clickable="true"
-                        android:focusable="true" />
-                </LinearLayout>-->
-
-                <!-- Lista dinámica — NotifPanelManager llena este contenedor
-                <LinearLayout
-                    android:id="@+id/notif_panel_list"
-                    android:layout_width="match_parent"
+                <!-- Número grande -->
+                <TextView
+                    android:id="@+id/speed_number"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone" />
+                    android:text="--"
+                    android:textColor="#FFFFFF"
+                    android:textSize="64sp"
+                    android:fontFamily="sans-serif-thin"
+                    android:lineSpacingMultiplier="0.9" />
 
-            </LinearLayout> -->
+                <!-- Etiqueta km/h -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="km/h"
+                    android:textColor="#5A6080"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.15"
+                    android:layout_marginTop="-4dp" />
 
+                <!-- Barra de progreso velocidad (max 120 km/h) -->
+                <LinearLayout
+                    android:layout_width="72dp"
+                    android:layout_height="4dp"
+                    android:layout_marginTop="8dp"
+                    android:background="#1E2140"
+                    android:clipChildren="true">
+
+                    <View
+                        android:id="@+id/speed_bar"
+                        android:layout_width="0dp"
+                        android:layout_height="4dp"
+                        android:background="#4A50D0"
+                        android:layout_weight="0" />
+
+                    <!-- Peso invisible para completar la barra -->
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="4dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ── Reloj ── -->
             <LinearLayout
                 android:id="@+id/clock_section"
                 android:layout_width="0dp"
@@ -277,102 +254,129 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Mini reproductor -->
-            <!-- Mini reproductor — BUG 2 FIX: de 300dp a 0dp+weight para ocupar espacio proporcional -->
+            <!-- ── Reproductor rediseñado ── -->
             <LinearLayout
                 android:id="@+id/widget_reproductor"
                 android:foreground="?android:attr/selectableItemBackground"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="0.9"
-                android:minWidth="320dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
+                android:layout_weight="0.70"
+                android:minWidth="260dp"
+                android:orientation="vertical"
+                android:gravity="center"
                 android:background="@drawable/shortcut_bg"
-                android:padding="15dp"
-                android:layout_marginTop="30dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="40dp"
-                android:layout_marginBottom="30dp"
+                android:padding="16dp"
+                android:layout_marginTop="10dp"
+
+                android:layout_marginBottom="10dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:visibility="visible">
 
-
-                <ImageView
-                    android:id="@+id/reproductor_icono"
-                    android:layout_width="44dp"
-                    android:layout_height="60dp"
-                    android:src="@drawable/ic_music"
-                    android:scaleType="fitCenter" />
-
+                <!-- Fila superior: portada + título/artista -->
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                    <TextView
-                        android:id="@+id/reproductor_titulo"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:maxLines="1"
-                        android:ellipsize="marquee"
-                        android:marqueeRepeatLimit="marquee_forever"
-                        android:scrollHorizontally="true"
-                        android:focusable="true"
-                        android:focusableInTouchMode="true"
-                        android:singleLine="true" />
+                    <!-- Portada del álbum con esquinas redondeadas -->
+                    <ImageView
+                        android:id="@+id/reproductor_icono"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@drawable/ic_music"
+                        android:scaleType="centerCrop"
+                        android:background="@drawable/shortcut_bg"
+                        android:padding="6dp" />
 
-                    <TextView
-                        android:id="@+id/reproductor_artista"
-                        android:layout_width="wrap_content"
+                    <!-- Título y artista -->
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#B0B0B0"
-                        android:textSize="12sp"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:layout_marginTop="2dp" />
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="4dp">
+
+                        <TextView
+                            android:id="@+id/reproductor_titulo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="marquee"
+                            android:marqueeRepeatLimit="marquee_forever"
+                            android:scrollHorizontally="true"
+                            android:focusable="true"
+                            android:focusableInTouchMode="true"
+                            android:singleLine="true" />
+
+                        <TextView
+                            android:id="@+id/reproductor_artista"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#7A7FA8"
+                            android:textSize="12sp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:layout_marginTop="3dp" />
+                    </LinearLayout>
                 </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/btn_anterior"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:src="@drawable/ic_anterior"
-                    android:padding="4dp"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true" />
+                <!-- Separador sutil -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1E2140"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginBottom="10dp" />
 
-                <ImageView
-                    android:id="@+id/btn_play_pausa"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:src="@drawable/ic_play"
-                    android:padding="4dp"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="6dp"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true" />
+                <!-- Fila inferior: controles centrados -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
 
-                <ImageView
-                    android:id="@+id/btn_siguiente"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:src="@drawable/ic_siguiente"
-                    android:padding="4dp"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true" />
+                    <ImageView
+                        android:id="@+id/btn_anterior"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:src="@drawable/ic_anterior"
+                        android:padding="8dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <!-- Botón play con fondo destacado -->
+                    <ImageView
+                        android:id="@+id/btn_play_pausa"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:src="@drawable/ic_play"
+                        android:padding="10dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp"
+
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:elevation="2dp" />
+
+                    <ImageView
+                        android:id="@+id/btn_siguiente"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:src="@drawable/ic_siguiente"
+                        android:padding="8dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
@@ -571,13 +575,6 @@
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         PANEL NOTIFICACIONES BT (Notisvin)
-         Posición: esquina inferior izquierda, flotante sobre el layout.
-         El contenedor se oculta solo cuando no hay notificaciones.
-         ═══════════════════════════════════════════════════════════════ -->
-
 
     <!-- Panel de sistema (oculto por defecto) -->
     <LinearLayout

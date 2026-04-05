@@ -1,5 +1,6 @@
 package codigo.cafe.alsvinlaunch;
 
+import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
@@ -7,6 +8,7 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
@@ -26,6 +28,7 @@ import codigo.cafe.alsvinlaunch.managers.MediaWidgetManager;
 import codigo.cafe.alsvinlaunch.managers.NotifPanelManager;
 import codigo.cafe.alsvinlaunch.managers.PermissionsManager;
 import codigo.cafe.alsvinlaunch.managers.ShortcutManager;
+import codigo.cafe.alsvinlaunch.managers.SpeedManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
 import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
 
@@ -39,6 +42,9 @@ public class MainActivity extends Activity {
     private static final String PREF_COLOR_DINAMICO = "color_dinamico";
     private static final int COLOR_BASE_FONDO = 0xFF1A1A2E;
 
+    // Código de solicitud para el permiso de ubicación
+    private static final int SOLICITUD_PERMISO_GPS = 200;
+
     // ── Managers ──
     private ClockManager clockManager;
     private ShortcutManager shortcutManager;
@@ -50,6 +56,7 @@ public class MainActivity extends Activity {
     private BluetoothContactsManager btContactsManager;
     private BtNotifReceiverManager btNotifReceiver;
     private NotifPanelManager notifPanelManager;
+    private SpeedManager speedManager;           // ← NUEVO
 
     // ── Estado ──
     private boolean abriendoApp = false;
@@ -89,6 +96,7 @@ public class MainActivity extends Activity {
         // ── Inicializar managers ──
         clockManager = new ClockManager(this, textoReloj, textoFecha);
         kioskManager = new KioskManager(this, prefs);
+        speedManager = new SpeedManager(this);               // ← NUEVO
 
         permissionsManager = new PermissionsManager(this);
         permissionsManager.setOnAbrirAjustesListener(() -> abriendoApp = true);
@@ -167,6 +175,9 @@ public class MainActivity extends Activity {
         // ── Carga inicial de datos (solo onCreate, no onResume) ──
         shortcutManager.cargar();
         permissionsManager.verificar();
+
+        // ── Pedir permiso GPS si no lo tenemos aún ──        // ← NUEVO
+        solicitarPermisoGpsSiNecesario();
     }
 
     // ══════════════════════════════════════
@@ -179,6 +190,7 @@ public class MainActivity extends Activity {
         clockManager.iniciar();
         mediaWidgetManager.iniciar();
         statusIndicatorManager.iniciar();
+        speedManager.iniciar();                               // ← NUEVO
     }
 
     @Override
@@ -187,6 +199,7 @@ public class MainActivity extends Activity {
         clockManager.detener();
         mediaWidgetManager.detener();
         statusIndicatorManager.detener();
+        speedManager.detener();                               // ← NUEVO
     }
 
     // ══════════════════════════════════════
@@ -241,6 +254,7 @@ public class MainActivity extends Activity {
         mediaWidgetManager.destruir();
         kioskManager.destruir();
         statusIndicatorManager.detener();
+        speedManager.destruir();                              // ← NUEVO
         contactsDialogHelper.setOnAppOpenListener(null);
 
         if (btNotifReceiver != null) btNotifReceiver.detener();
@@ -263,11 +277,44 @@ public class MainActivity extends Activity {
     }
 
     // ══════════════════════════════════════
+    //  PERMISO GPS
+    // ══════════════════════════════════════
+
+    /**
+     * Solicita ACCESS_FINE_LOCATION en Android 6+ si aún no fue concedido.
+     * SpeedManager#iniciar() verifica el permiso por su cuenta; esta llamada
+     * solo sirve para que el sistema muestre el diálogo al usuario la primera vez.
+     */
+    private void solicitarPermisoGpsSiNecesario() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    SOLICITUD_PERMISO_GPS);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == SOLICITUD_PERMISO_GPS) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permiso recién concedido → arrancar SpeedManager ahora
+                speedManager.iniciar();
+            }
+            // Si fue denegado, SpeedManager ya ocultó el widget en iniciar()
+        }
+    }
+
+    // ══════════════════════════════════════
     //  CONFIGURACIÓN DE BOTONES
     // ══════════════════════════════════════
 
     private void configurarReloj() {
-        // Long press → abre ajustes de fecha/hora
         findViewById(R.id.boton_reloj).setOnLongClickListener(v -> {
             systemPanelManager.ocultar();
             abriendoApp = true;
@@ -302,13 +349,10 @@ public class MainActivity extends Activity {
             abriendoApp = true;
             startActivity(new Intent(this, AllAppsActivity.class));
         });
-
-
     }
 
     private void configurarBotonSistema() {
         findViewById(R.id.root_layout).setOnClickListener(v -> systemPanelManager.ocultar());
-        findViewById(R.id.fab_clear_apps).setOnClickListener(v -> liberarMemoria());
     }
 
     private void configurarIndicadoresEstado() {
@@ -321,13 +365,11 @@ public class MainActivity extends Activity {
             }
         });
 
-        // BT → abre ajustes bluetooth directamente
         findViewById(R.id.indicador_bluetooth).setOnClickListener(v -> {
             abriendoApp = true;
             try {
                 startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));
             } catch (Exception e) {
-                // Fallback — ajustes generales
                 try {
                     startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
                 } catch (Exception ex) {
@@ -337,7 +379,6 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Contactos → abre el diálogo de contactos rápidos
         findViewById(R.id.boton_contactos).setOnClickListener(
                 v -> contactsDialogHelper.mostrar());
     }
@@ -365,13 +406,11 @@ public class MainActivity extends Activity {
         if (colorActualFondo == colorDestino) return;
 
         ValueAnimator animator = ValueAnimator.ofObject(
-                new ArgbEvaluator(),
-                colorActualFondo,
-                colorDestino
-        );
+                new ArgbEvaluator(), colorActualFondo, colorDestino);
         animator.setDuration(800);
         animator.addUpdateListener(anim ->
-                findViewById(R.id.root_layout).setBackgroundColor((int) anim.getAnimatedValue()));
+                findViewById(R.id.root_layout)
+                        .setBackgroundColor((int) anim.getAnimatedValue()));
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
@@ -390,7 +429,6 @@ public class MainActivity extends Activity {
             ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
             if (am == null) return;
 
-            // RAM antes
             ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
             am.getMemoryInfo(memInfo);
             long ramLibreAntes = memInfo.availMem / (1024 * 1024);
@@ -405,8 +443,6 @@ public class MainActivity extends Activity {
             String appsMatadas = "";
 
             for (ActivityManager.RunningAppProcessInfo proceso : procesos) {
-                // En Android 6: IMPORTANCE_BACKGROUND = 400, IMPORTANCE_EMPTY = 500
-                // Matar todo lo que esté en background o empty, excepto nosotros mismos
                 if (proceso.importance >= ActivityManager.RunningAppProcessInfo.IMPORTANCE_BACKGROUND
                         && !proceso.processName.equals(getPackageName())) {
                     am.killBackgroundProcesses(proceso.processName);
@@ -415,7 +451,6 @@ public class MainActivity extends Activity {
                 }
             }
 
-            // Esperar 500ms y mostrar RAM liberada
             final int totalLiberados = liberados;
             final String listaApps = appsMatadas;
             new android.os.Handler().postDelayed(() -> {
@@ -426,7 +461,9 @@ public class MainActivity extends Activity {
                 mostrarMensaje("✓ " + totalLiberados + " apps cerradas\n"
                         + "RAM antes: " + ramLibreAntes + "MB\n"
                         + "RAM ahora: " + ramLibreDespues + "MB\n"
-                        + (ganancia > 0 ? "+" + ganancia + "MB liberados" : "sin cambio"));
+                        + (ganancia > 0
+                        ? "+" + ganancia + "MB liberados"
+                        : "sin cambio"));
             }, 500);
 
         } catch (Exception e) {
@@ -439,32 +476,27 @@ public class MainActivity extends Activity {
     // ══════════════════════════════════════
 
     private void alternarBloqueo() {
-        if (pantallaBloqueada) {
-            desbloquearPantalla();
-        } else {
-            bloquearPantalla();
-        }
+        if (pantallaBloqueada) desbloquearPantalla();
+        else bloquearPantalla();
     }
 
     private void bloquearPantalla() {
         pantallaBloqueada = true;
         topBar.setVisibility(View.GONE);
-        findViewById(R.id.widget_reproductor).setVisibility(View.GONE);
+        mediaWidgetManager.ocultar();                  // ← limpio, sin tocar R.id
         findViewById(R.id.shortcuts_container).setVisibility(View.GONE);
+        findViewById(R.id.speed_text).setVisibility(View.GONE);
         findViewById(R.id.root_layout).setBackgroundColor(0xFF000000);
-
-        // Tocar la pantalla desbloquea
         findViewById(R.id.root_layout).setOnClickListener(v -> desbloquearPantalla());
     }
 
     private void desbloquearPantalla() {
         pantallaBloqueada = false;
         topBar.setVisibility(View.VISIBLE);
-        findViewById(R.id.widget_reproductor).setVisibility(View.VISIBLE);
+        mediaWidgetManager.mostrar();                  // ← solo muestra si hay música activa
         findViewById(R.id.shortcuts_container).setVisibility(View.VISIBLE);
+        speedManager.iniciar();                        // SpeedManager decide si mostrar
         findViewById(R.id.root_layout).setBackgroundColor(COLOR_BASE_FONDO);
-
-        // Restaurar click original (ocultar panel sistema)
         findViewById(R.id.root_layout).setOnClickListener(v -> systemPanelManager.ocultar());
     }
 
@@ -476,20 +508,12 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        // ← FIX: cada manager maneja solo su requestCode
         if (requestCode == ShortcutManager.SOLICITUD_ELEGIR_APP) {
             shortcutManager.procesarResultado(requestCode, resultCode, data);
-            // procesarResultado ya guarda prefs y llama cargar() internamente
             return;
         }
 
         contactsDialogHelper.procesarResultado(requestCode, resultCode, data);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     // ══════════════════════════════════════

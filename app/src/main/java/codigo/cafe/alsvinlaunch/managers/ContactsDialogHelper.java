@@ -2,7 +2,6 @@ package codigo.cafe.alsvinlaunch.managers;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -16,7 +15,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import codigo.cafe.alsvinlaunch.R;
-import codigo.cafe.alsvinlaunch.util.ConstantesSistema;
 
 public class ContactsDialogHelper {
 
@@ -25,6 +23,7 @@ public class ContactsDialogHelper {
 
     private final Activity actividad;
     private final SharedPreferences prefs;
+    private final BluetoothCallManager btCallManager;   // ← NUEVO
     private OnAppOpenListener listenerApp;
     private int indicePendiente = -1;
 
@@ -34,13 +33,18 @@ public class ContactsDialogHelper {
 
     public ContactsDialogHelper(Activity actividad, SharedPreferences prefs,
                                 BluetoothContactsManager btContactsManager) {
-        this.actividad = actividad;
-        this.prefs = prefs;
+        this.actividad      = actividad;
+        this.prefs          = prefs;
+        this.btCallManager  = new BluetoothCallManager(actividad);  // ← NUEVO
     }
 
     public void setOnAppOpenListener(OnAppOpenListener listener) {
         this.listenerApp = listener;
     }
+
+    // ══════════════════════════════════════
+    //  Diálogo principal
+    // ══════════════════════════════════════
 
     public void mostrar() {
         View vista = LayoutInflater.from(actividad)
@@ -66,15 +70,28 @@ public class ContactsDialogHelper {
         vista.findViewById(R.id.boton_cerrar)
                 .setOnClickListener(v -> dialogo.dismiss());
 
+        // ── Botón diagnóstico BT ──────────────────────────────────────
+        // Si tu layout tiene un boton_diagnostico_bt, lo conectamos aquí.
+        // Si no existe en el layout, esta línea simplemente no hace nada.
+        View btnDiag = vista.findViewById(R.id.boton_diagnostico_bt);
+        if (btnDiag != null) {
+            btnDiag.setOnClickListener(v -> mostrarDiagnosticoBt());
+        }
+        // ─────────────────────────────────────────────────────────────
+
         dialogo.show();
     }
+
+    // ══════════════════════════════════════
+    //  Filas de contacto
+    // ══════════════════════════════════════
 
     private void configurarFilaContacto(View fila, int indice, AlertDialog dialogo) {
         String nombre = prefs.getString("contacto_nombre_" + indice, null);
         String numero = prefs.getString("contacto_numero_" + indice, null);
 
         LinearLayout grupoContacto = fila.findViewById(R.id.grupo_contacto);
-        TextView botonAgregar = fila.findViewById(R.id.boton_agregar);
+        TextView botonAgregar      = fila.findViewById(R.id.boton_agregar);
 
         if (nombre != null && numero != null) {
             grupoContacto.setVisibility(View.VISIBLE);
@@ -83,15 +100,18 @@ public class ContactsDialogHelper {
             ((TextView) fila.findViewById(R.id.texto_nombre)).setText(nombre);
             ((TextView) fila.findViewById(R.id.texto_numero)).setText(numero);
 
-            View.OnClickListener accionLlamar = v -> realizarLlamada(numero);
+            // ── Llamada vía BT ────────────────────────────────────────
+            final String numeroCopia = numero;
+            View.OnClickListener accionLlamar = v -> realizarLlamada(numeroCopia);
             fila.findViewById(R.id.icono_llamar).setOnClickListener(accionLlamar);
             fila.findViewById(R.id.info_contacto).setOnClickListener(accionLlamar);
+            // ─────────────────────────────────────────────────────────
 
             fila.findViewById(R.id.boton_eliminar).setOnClickListener(v -> {
                 prefs.edit()
                         .remove("contacto_nombre_" + indice)
                         .remove("contacto_numero_" + indice)
-                        .commit(); // ← commit() síncrono
+                        .commit();
                 Toast.makeText(actividad, "Contacto eliminado", Toast.LENGTH_SHORT).show();
                 dialogo.dismiss();
                 mostrar();
@@ -107,6 +127,10 @@ public class ContactsDialogHelper {
             });
         }
     }
+
+    // ══════════════════════════════════════
+    //  Diálogo agregar contacto
+    // ══════════════════════════════════════
 
     private void mostrarDialogoAgregar(int indice) {
         View vista = LayoutInflater.from(actividad)
@@ -147,6 +171,10 @@ public class ContactsDialogHelper {
         dialogo.show();
     }
 
+    // ══════════════════════════════════════
+    //  Picker de contactos del sistema
+    // ══════════════════════════════════════
+
     private void abrirPickerContactos(int indice) {
         indicePendiente = indice;
         prefs.edit().putInt("contacto_pendiente_idx", indice).commit();
@@ -155,7 +183,6 @@ public class ContactsDialogHelper {
         try {
             Intent intent = new Intent(Intent.ACTION_PICK,
                     ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
-            // ← sin setPackage, un solo intent, un solo resultado
             actividad.startActivityForResult(intent, REQUEST_PICK_CONTACT);
         } catch (Exception e) {
             Toast.makeText(actividad,
@@ -168,7 +195,6 @@ public class ContactsDialogHelper {
     public void procesarResultado(int requestCode, int resultCode, Intent data) {
         if (requestCode != REQUEST_PICK_CONTACT) return;
 
-        // Restaurar índice desde prefs si la activity fue destruida
         if (indicePendiente < 0) {
             indicePendiente = prefs.getInt("contacto_pendiente_idx", -1);
         }
@@ -217,53 +243,45 @@ public class ContactsDialogHelper {
         prefs.edit().remove("contacto_pendiente_idx").commit();
     }
 
+    // ══════════════════════════════════════
+    //  Llamada vía BT
+    // ══════════════════════════════════════
+
+    /**
+     * Delega la llamada al BluetoothCallManager.
+     * Notifica a MainActivity que vamos a abrir otra app (evita retorno kiosco).
+     */
     private void realizarLlamada(String numero) {
         if (listenerApp != null) listenerApp.onAppOpening();
-
-        String numeroLimpio = numero.replaceAll("[^+0-9]", "");
-
-        // 1. ACTION_CALL → HiveOS enruta por HFP
-        try {
-            Intent intent = new Intent(Intent.ACTION_CALL);
-            intent.setData(Uri.parse("tel:" + numeroLimpio));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            actividad.startActivity(intent);
-            Toast.makeText(actividad, "✓ Llamada vía ACTION_CALL", Toast.LENGTH_SHORT).show();
-            return;
-        } catch (Exception e) {
-            Toast.makeText(actividad, "✗ ACTION_CALL falló: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-
-        // 2. App nativa HiveOS
-        try {
-            Intent intent = new Intent();
-            intent.setComponent(new ComponentName(
-                    ConstantesSistema.PAQUETE_HIVEOS,
-                    ConstantesSistema.ACTIVIDAD_TELEFONO));
-            intent.setData(Uri.parse("tel:" + numeroLimpio));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            actividad.startActivity(intent);
-            Toast.makeText(actividad, "✓ Llamada vía HiveOS", Toast.LENGTH_SHORT).show();
-            return;
-        } catch (Exception e) {
-            Toast.makeText(actividad, "✗ HiveOS falló: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-
-        // 3. ACTION_DIAL — último recurso
-        try {
-            Intent intent = new Intent(Intent.ACTION_DIAL);
-            intent.setData(Uri.parse("tel:" + numeroLimpio));
-            actividad.startActivity(intent);
-            Toast.makeText(actividad, "✓ Llamada vía ACTION_DIAL (confirmar manual)", Toast.LENGTH_LONG).show();
-        } catch (Exception ex) {
-            Toast.makeText(actividad, "✗ Todo falló: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-        }
+        btCallManager.llamar(numero);
     }
+
+    // ══════════════════════════════════════
+    //  Diagnóstico BT
+    // ══════════════════════════════════════
+
+    /**
+     * Muestra un AlertDialog con info del estado BT y la app detectada.
+     * Útil para identificar el paquete correcto sin ADB.
+     */
+    private void mostrarDiagnosticoBt() {
+        String info = btCallManager.obtenerInfoDiagnostico();
+
+        new AlertDialog.Builder(actividad)
+                .setTitle("Diagnóstico BT")
+                .setMessage(info)
+                .setPositiveButton("Cerrar", null)
+                .show();
+    }
+
+    // ══════════════════════════════════════
+    //  Utilidades
+    // ══════════════════════════════════════
 
     private void guardarContacto(int indice, String nombre, String numero) {
         prefs.edit()
                 .putString("contacto_nombre_" + indice, nombre)
                 .putString("contacto_numero_" + indice, numero)
-                .commit(); // ← commit() síncrono
+                .commit();
     }
 }
