@@ -147,86 +147,43 @@
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════════════
-             Sección central: Velocímetro + Reloj + Reproductor
+             Sección central: Velocímetro | Reloj | Reproductor
 
-             Truco de simetría: hay un "espejo" invisible del lado
-             opuesto a cada widget lateral con el mismo peso.
-             El reloj (weight=2) siempre queda centrado sin importar
-             cuáles laterales están VISIBLE o GONE.
-
-             [espejo-der 0.9] [speed 0.9] [reloj 2] [reproductor 0.9] [espejo-izq 0.9]
+             GridLayout 3 columnas de peso igual (columnWeight).
+             Cada celda siempre ocupa exactamente 1/3 del ancho,
+             sin importar si algún hijo está GONE.
              ═══════════════════════════════════════════════════ -->
-        <LinearLayout
+        <GridLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:rowCount="1"
+            android:columnCount="3"
             android:paddingBottom="10dp">
 
-            <!-- Espejo invisible del reproductor (opuesto derecho→izquierdo)
-                 Cuando reproductor=VISIBLE este espejo=VISIBLE para balancear -->
-            <View
-                android:id="@+id/espejo_izquierdo"
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="0.9"
-                android:visibility="gone" />
-
-            <!-- ── Velocímetro ── -->
+            <!-- ── Columna 1: Velocímetro con anillo circular (LEFT) ── -->
             <LinearLayout
                 android:id="@+id/speed_text"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.9"
-                android:orientation="vertical"
+                android:layout_height="match_parent"
+                android:layout_columnWeight="1"
                 android:gravity="center"
+                android:orientation="vertical"
                 android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/speed_number"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="--"
-                    android:textColor="#FFFFFF"
-                    android:textSize="56sp"
-                    android:fontFamily="sans-serif-thin"
-                    android:lineSpacingMultiplier="0.9" />
+                <codigo.cafe.alsvinlaunch.views.SpeedometerView
+                    android:id="@+id/speedometer_view"
+                    android:layout_width="140dp"
+                    android:layout_height="140dp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="km/h"
-                    android:textColor="#5A6080"
-                    android:textSize="11sp"
-                    android:letterSpacing="0.15"
-                    android:layout_marginTop="-4dp" />
-
-                <LinearLayout
-                    android:layout_width="60dp"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="8dp"
-                    android:background="#1E2140"
-                    android:clipChildren="true">
-                    <View
-                        android:id="@+id/speed_bar"
-                        android:layout_width="0dp"
-                        android:layout_height="4dp"
-                        android:background="#4A50D0"
-                        android:layout_weight="0" />
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="4dp"
-                        android:layout_weight="1" />
-                </LinearLayout>
             </LinearLayout>
 
-            <!-- ── Reloj — peso fijo, siempre centrado ── -->
+            <!-- ── Columna 2: Reloj (CENTER) — siempre visible ── -->
             <LinearLayout
                 android:id="@+id/clock_section"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
+                android:layout_height="match_parent"
+                android:layout_columnWeight="1"
                 android:gravity="center"
                 android:orientation="vertical">
 
@@ -259,21 +216,27 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- ── Reproductor ── -->
+            <!-- ── Columna 3: Reproductor (RIGHT) ── -->
             <LinearLayout
                 android:id="@+id/widget_reproductor"
                 android:foreground="?android:attr/selectableItemBackground"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="0.9"
+                android:layout_columnWeight="1"
+                android:layout_gravity="center_vertical"
                 android:orientation="vertical"
                 android:gravity="center"
                 android:background="@drawable/shortcut_bg"
                 android:padding="10dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginBottom="12dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:visibility="gone">
 
+                <!-- Portada + título/artista -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -326,6 +289,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
+                <!-- Separador -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
@@ -333,6 +297,7 @@
                     android:layout_marginTop="12dp"
                     android:layout_marginBottom="8dp" />
 
+                <!-- Controles -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -374,16 +339,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Espejo invisible del velocímetro (opuesto izquierdo→derecho)
-                 Cuando speed=VISIBLE este espejo=VISIBLE para balancear -->
-            <View
-                android:id="@+id/espejo_derecho"
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="0.9"
-                android:visibility="gone" />
-
-        </LinearLayout>
+        </GridLayout>
 
         <!-- Shortcuts -->
         <LinearLayout
