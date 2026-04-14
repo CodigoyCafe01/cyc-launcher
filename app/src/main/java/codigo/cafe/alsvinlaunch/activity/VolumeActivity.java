@@ -1,4 +1,4 @@
-package codigo.cafe.alsvinlaunch;
+package codigo.cafe.alsvinlaunch.activity;
 
 import android.app.Activity;
 import android.media.AudioManager;
@@ -7,6 +7,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import codigo.cafe.alsvinlaunch.R;
 
 /**
  * VolumeActivity – Iguala y controla todos los streams de audio del sistema.

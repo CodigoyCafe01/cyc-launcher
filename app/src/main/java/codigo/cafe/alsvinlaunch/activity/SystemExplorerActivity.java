@@ -1,4 +1,4 @@
-package codigo.cafe.alsvinlaunch;
+package codigo.cafe.alsvinlaunch.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -7,14 +7,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.ViewGroup;
 import android.widget.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import codigo.cafe.alsvinlaunch.R;
 
 public class SystemExplorerActivity extends Activity {
 

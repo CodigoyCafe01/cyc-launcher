@@ -106,7 +106,8 @@ public class SpeedometerView extends View {
         this.velocidadActual = kmh;
         this.velocidadMaxima = maxKmh;
 
-        float targetProgreso = Math.min(1f, (float) kmh / maxKmh);
+        // Si kmh == 0 → anillo vacío y muestra "--"
+        float targetProgreso = (kmh == 0) ? 0f : Math.min(1f, (float) kmh / maxKmh);
         float desde = progresoAnimado;
 
         if (animador != null) animador.cancel();
@@ -168,7 +169,7 @@ public class SpeedometerView extends View {
         // 3. Número de velocidad centrado verticalmente
         //    baseline = centro + la mitad de la altura del número
         float offsetNumero = (paintNumero.descent() + paintNumero.ascent()) / 2f;
-        String textoNum = velocidadActual == 0f ? "--" : String.valueOf((int) velocidadActual);
+        String textoNum = (velocidadActual <= 0f) ? "--" : String.valueOf((int) velocidadActual);
         canvas.drawText(textoNum, cx, cy - offsetNumero - getHeight() * 0.04f, paintNumero);
 
         // 4. Etiqueta "km/h" debajo del número

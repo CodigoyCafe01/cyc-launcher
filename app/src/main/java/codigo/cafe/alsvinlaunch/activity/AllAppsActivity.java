@@ -1,11 +1,10 @@
-package codigo.cafe.alsvinlaunch;
+package codigo.cafe.alsvinlaunch.activity;
 
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,9 +17,9 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
+import codigo.cafe.alsvinlaunch.R;
 import codigo.cafe.alsvinlaunch.model.AppInfo;
 
 public class AllAppsActivity extends Activity {

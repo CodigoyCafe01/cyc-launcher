@@ -1,4 +1,4 @@
-package codigo.cafe.alsvinlaunch;
+package codigo.cafe.alsvinlaunch.activity;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;

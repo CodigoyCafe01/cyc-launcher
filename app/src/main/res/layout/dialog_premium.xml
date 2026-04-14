@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#FF1A1A2E"
+    android:gravity="center">
+
+    <!-- Ícono -->
+    <ImageView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/ic_lock"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Título -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Prueba gratuita finalizada"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Subtítulo -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Desbloquea CycLauncher Premium\npor un único pago de por vida"
+        android:textColor="#B0B0B0"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Beneficios -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/shortcut_bg"
+        android:padding="16dp"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓  Velocímetro GPS en tiempo real"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓  Reproductor de música integrado"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓  Accesos rápidos personalizables"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓  Sin suscripciones — pago único"
+            android:textColor="#4CAF50"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Precio -->
+    <TextView
+        android:id="@+id/tv_precio"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="$2.99 — una sola vez"
+        android:textColor="#FFD700"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Botón comprar -->
+    <Button
+        android:id="@+id/btn_comprar"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Comprar ahora"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#3D5AFE"
+        android:layout_marginBottom="10dp" />
+
+    <!-- Botón restaurar compra -->
+    <Button
+        android:id="@+id/btn_restaurar"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="Restaurar compra"
+        android:textSize="13sp"
+        android:textColor="#B0B0B0"
+        android:backgroundTint="@android:color/transparent"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Nota legal -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="El pago se procesa de forma segura a través de Google Play"
+        android:textColor="#555577"
+        android:textSize="10sp"
+        android:gravity="center" />
+
+</LinearLayout>

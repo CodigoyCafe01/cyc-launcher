@@ -11,6 +11,7 @@
     <uses-feature android:name="android.hardware.bluetooth"        android:required="false" />
 
 
+    <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission
@@ -97,19 +98,15 @@
           </activity> -->
 
         <activity
-            android:name=".AllAppsActivity"
+            android:name=".activity.AllAppsActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
 
         <activity
-            android:name=".AppPickerActivity"
+            android:name=".activity.AppPickerActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
 
-        <activity
-            android:name=".DebugPackagesActivity"
-            android:exported="false"
-            android:screenOrientation="landscape" />
 
         <receiver
             android:name=".services.BootReceiver"
@@ -121,14 +118,20 @@
         </receiver>
 
         <activity
-            android:name=".BroadcastSnifferActivity"
+            android:name=".activity.BroadcastSnifferActivity"
             android:label="Sniffer"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 
-        <activity android:name=".VolumeActivity" />
+        <activity android:name=".activity.VolumeActivity" />
 
         <activity
-            android:name=".SystemExplorerActivity"
+            android:name=".activity.LockScreenActivity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:screenOrientation="landscape"
+            android:excludeFromRecents="true" />
+
+        <activity
+            android:name=".activity.SystemExplorerActivity"
             android:label="System Explorer"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 

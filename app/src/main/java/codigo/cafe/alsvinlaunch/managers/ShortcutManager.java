@@ -11,7 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import codigo.cafe.alsvinlaunch.AppPickerActivity;
+import codigo.cafe.alsvinlaunch.activity.AppPickerActivity;
 import codigo.cafe.alsvinlaunch.R;
 import codigo.cafe.alsvinlaunch.util.ConstantesSistema;
 

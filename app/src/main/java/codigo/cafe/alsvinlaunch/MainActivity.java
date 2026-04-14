@@ -19,6 +19,8 @@ import android.widget.Toast;
 
 import java.util.List;
 
+import codigo.cafe.alsvinlaunch.activity.AllAppsActivity;
+import codigo.cafe.alsvinlaunch.activity.LockScreenActivity;
 import codigo.cafe.alsvinlaunch.managers.BluetoothContactsManager;
 import codigo.cafe.alsvinlaunch.managers.BtNotifReceiverManager;
 import codigo.cafe.alsvinlaunch.managers.ClockManager;
@@ -32,47 +34,53 @@ import codigo.cafe.alsvinlaunch.managers.SpeedManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
 import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
 
+import android.app.AlertDialog;
+import android.view.LayoutInflater;
+import android.view.View;
+
+import codigo.cafe.alsvinlaunch.managers.PremiumManager;
+
 /**
  * Actividad principal del launcher.
  * Orquesta los managers especializados sin lógica de negocio propia.
  */
 public class MainActivity extends Activity {
 
-    private static final String NOMBRE_PREFS     = "alsvin_launcher_prefs";
+    private static final String NOMBRE_PREFS = "alsvin_launcher_prefs";
     private static final String PREF_COLOR_DINAMICO = "color_dinamico";
-    private static final int    COLOR_BASE_FONDO = 0xFF1A1A2E;
+    private static final int COLOR_BASE_FONDO = 0xFF1A1A2E;
 
     // Código de solicitud para el permiso de ubicación
     private static final int SOLICITUD_PERMISO_GPS = 200;
 
     // ── Managers ──
-    private ClockManager            clockManager;
-    private ShortcutManager         shortcutManager;
-    private SystemPanelManager      systemPanelManager;
-    private MediaWidgetManager      mediaWidgetManager;
-    private StatusIndicatorManager  statusIndicatorManager;
-    private ContactsDialogHelper    contactsDialogHelper;
-    private KioskManager            kioskManager;
+    private ClockManager clockManager;
+    private ShortcutManager shortcutManager;
+    private SystemPanelManager systemPanelManager;
+    private MediaWidgetManager mediaWidgetManager;
+    private StatusIndicatorManager statusIndicatorManager;
+    private ContactsDialogHelper contactsDialogHelper;
+    private KioskManager kioskManager;
     private BluetoothContactsManager btContactsManager;
-    private BtNotifReceiverManager  btNotifReceiver;
-    private NotifPanelManager       notifPanelManager;
-    private SpeedManager            speedManager;           // ← NUEVO
-
+    private BtNotifReceiverManager btNotifReceiver;
+    private NotifPanelManager notifPanelManager;
+    private SpeedManager speedManager;
+    //private PremiumManager premiumManager;
     // ── Estado ──
-    private boolean abriendoApp      = false;
+    private boolean abriendoApp = false;
     private boolean modoColorDinamico = false;
-    private int     colorActualFondo  = COLOR_BASE_FONDO;
-    private boolean primerResume      = true;
+    private int colorActualFondo = COLOR_BASE_FONDO;
+    private boolean primerResume = true;
     private boolean pantallaBloqueada = false;
 
     // ── Vistas directas ──
-    private TextView  textoReloj;
-    private TextView  textoFecha;
+    private TextView textoReloj;
+    private TextView textoFecha;
     private ImageView botonBloqueo;
-    private View      topBar;
+    private View topBar;
 
     private PermissionsManager permissionsManager;
-    private SharedPreferences  prefs;
+    private SharedPreferences prefs;
 
     // ══════════════════════════════════════
     //  CICLO DE VIDA — onCreate
@@ -86,17 +94,18 @@ public class MainActivity extends Activity {
 
         prefs = getSharedPreferences(NOMBRE_PREFS, MODE_PRIVATE);
 
+        //premiumManager = new PremiumManager(this, prefs);
         // ── Buscar vistas ──
-        textoReloj  = findViewById(R.id.clock_text);
-        textoFecha  = findViewById(R.id.date_text);
+        textoReloj = findViewById(R.id.clock_text);
+        textoFecha = findViewById(R.id.date_text);
         botonBloqueo = findViewById(R.id.btn_theme_toggle);
-        topBar       = findViewById(R.id.top_bar);
+        topBar = findViewById(R.id.top_bar);
         LinearLayout panelSistema = findViewById(R.id.system_panel);
 
         // ── Inicializar managers ──
-        clockManager  = new ClockManager(this, textoReloj, textoFecha);
-        kioskManager  = new KioskManager(this, prefs);
-        speedManager  = new SpeedManager(this);               // ← NUEVO
+        clockManager = new ClockManager(this, textoReloj, textoFecha);
+        kioskManager = new KioskManager(this, prefs);
+        speedManager = new SpeedManager(this);               // ← NUEVO
 
         permissionsManager = new PermissionsManager(this);
         permissionsManager.setOnAbrirAjustesListener(() -> abriendoApp = true);
@@ -109,17 +118,31 @@ public class MainActivity extends Activity {
 
         shortcutManager = new ShortcutManager(this, prefs);
         shortcutManager.setOnAppOpenListener(new ShortcutManager.OnAppOpenListener() {
-            @Override public void onAppOpening()  { abriendoApp = true;  }
-            @Override public void onAppOpenFailed() { abriendoApp = false; }
+            @Override
+            public void onAppOpening() {
+                abriendoApp = true;
+            }
+
+            @Override
+            public void onAppOpenFailed() {
+                abriendoApp = false;
+            }
         });
 
         systemPanelManager = new SystemPanelManager(this, panelSistema);
         systemPanelManager.setOnAppOpenListener(new SystemPanelManager.OnAppOpenListener() {
-            @Override public void onAppOpening()  { abriendoApp = true;  }
-            @Override public void onAppOpenFailed() { abriendoApp = false; }
+            @Override
+            public void onAppOpening() {
+                abriendoApp = true;
+            }
+
+            @Override
+            public void onAppOpenFailed() {
+                abriendoApp = false;
+            }
         });
 
-        btContactsManager  = new BluetoothContactsManager(this);
+        btContactsManager = new BluetoothContactsManager(this);
         mediaWidgetManager = new MediaWidgetManager(this);
         statusIndicatorManager = new StatusIndicatorManager(this);
 
@@ -128,7 +151,7 @@ public class MainActivity extends Activity {
 
         // ── Notificaciones BT (Notisvin) ──
         notifPanelManager = new NotifPanelManager(this);
-        btNotifReceiver   = new BtNotifReceiverManager(notif ->
+        btNotifReceiver = new BtNotifReceiverManager(notif ->
                 notifPanelManager.agregarNotif(notif));
         btNotifReceiver.iniciar();
 
@@ -139,6 +162,7 @@ public class MainActivity extends Activity {
             public void onColor(int colorDominante) {
                 if (modoColorDinamico) animarColorFondo(colorDominante);
             }
+
             @Override
             public void onSinColor() {
                 if (modoColorDinamico) animarColorFondo(COLOR_BASE_FONDO);
@@ -149,6 +173,7 @@ public class MainActivity extends Activity {
         shortcutManager.precargarSiNecesario();
         shortcutManager.configurarVistas(() -> systemPanelManager.ocultar());
         systemPanelManager.construir();
+
 
         configurarReloj();
         configurarBotonBloqueo();
@@ -163,6 +188,21 @@ public class MainActivity extends Activity {
 
         // ── Pedir permiso GPS si no lo tenemos aún ──        // ← NUEVO
         solicitarPermisoGpsSiNecesario();
+
+        /*premiumManager.verificar(tieneAcceso -> {
+
+            if (!tieneAcceso) {
+                runOnUiThread(this::mostrarDialogPremium);
+            } else if (!premiumManager.esPremium()) {
+                // Mostrar días restantes en un Toast suave
+                int dias = premiumManager.diasRestantesTrial();
+                if (dias <= 3) {
+                    runOnUiThread(() ->
+                            mostrarMensaje("⏳ Trial: " + dias + " día(s) restante(s)"));
+                }
+            }
+        });*/
+
     }
 
     // ══════════════════════════════════════
@@ -212,6 +252,20 @@ public class MainActivity extends Activity {
 
         TextView titulo = findViewById(R.id.reproductor_titulo);
         if (titulo != null) titulo.setSelected(true);
+
+/*        premiumManager.verificarComprasPendientes(new PremiumManager.OnCompraListener() {
+            @Override
+            public void onCompraExitosa() {
+                mostrarMensaje("✓ Premium activado. ¡Gracias!");
+            }
+
+            @Override
+            public void onCompraError(String mensaje) {
+                // silencioso en onResume
+            }
+        });
+*/
+
     }
 
     // ══════════════════════════════════════
@@ -244,9 +298,12 @@ public class MainActivity extends Activity {
 
         if (btNotifReceiver != null) btNotifReceiver.detener();
 
-        textoReloj   = null;
-        textoFecha   = null;
+        textoReloj = null;
+        textoFecha = null;
         botonBloqueo = null;
+
+        // if (premiumManager != null) premiumManager.destruir();
+
     }
 
     // ══════════════════════════════════════
@@ -274,7 +331,7 @@ public class MainActivity extends Activity {
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
-                    new String[]{ Manifest.permission.ACCESS_FINE_LOCATION },
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     SOLICITUD_PERMISO_GPS);
         }
     }
@@ -318,7 +375,7 @@ public class MainActivity extends Activity {
     }
 
     private void configurarBotonBloqueo() {
-        botonBloqueo.setOnClickListener(v -> alternarBloqueo());
+        botonBloqueo.setOnClickListener(v -> bloquearPantalla());
 
         botonBloqueo.setOnLongClickListener(v -> {
             kioskManager.alternar();
@@ -424,7 +481,7 @@ public class MainActivity extends Activity {
                 return;
             }
 
-            int    liberados  = 0;
+            int liberados = 0;
             String appsMatadas = "";
 
             for (ActivityManager.RunningAppProcessInfo proceso : procesos) {
@@ -436,16 +493,16 @@ public class MainActivity extends Activity {
                 }
             }
 
-            final int    totalLiberados = liberados;
-            final String listaApps      = appsMatadas;
+            final int totalLiberados = liberados;
+            final String listaApps = appsMatadas;
             new android.os.Handler().postDelayed(() -> {
                 am.getMemoryInfo(memInfo);
                 long ramLibreDespues = memInfo.availMem / (1024 * 1024);
-                long ganancia        = ramLibreDespues - ramLibreAntes;
+                long ganancia = ramLibreDespues - ramLibreAntes;
 
                 mostrarMensaje("✓ " + totalLiberados + " apps cerradas\n"
-                        + "RAM antes: "  + ramLibreAntes   + "MB\n"
-                        + "RAM ahora: "  + ramLibreDespues + "MB\n"
+                        + "RAM antes: " + ramLibreAntes + "MB\n"
+                        + "RAM ahora: " + ramLibreDespues + "MB\n"
                         + (ganancia > 0
                         ? "+" + ganancia + "MB liberados"
                         : "sin cambio"));
@@ -460,30 +517,60 @@ public class MainActivity extends Activity {
     //  BLOQUEO DE PANTALLA
     // ══════════════════════════════════════
 
-    private void alternarBloqueo() {
-        if (pantallaBloqueada) desbloquearPantalla();
-        else                   bloquearPantalla();
-    }
-
     private void bloquearPantalla() {
-        pantallaBloqueada = true;
-        topBar.setVisibility(View.GONE);
-        mediaWidgetManager.ocultar();
-        speedManager.ocultar();                        // ← limpio, sin tocar R.id
-        findViewById(R.id.shortcuts_container).setVisibility(View.GONE);
-        findViewById(R.id.root_layout).setBackgroundColor(0xFF000000);
-        findViewById(R.id.root_layout).setOnClickListener(v -> desbloquearPantalla());
+        abriendoApp = true;
+        startActivity(new Intent(this, LockScreenActivity.class));
     }
 
-    private void desbloquearPantalla() {
-        pantallaBloqueada = false;
-        topBar.setVisibility(View.VISIBLE);
-        mediaWidgetManager.mostrar();
-        speedManager.mostrar();                        // ← SpeedManager decide si mostrar
-        findViewById(R.id.shortcuts_container).setVisibility(View.VISIBLE);
-        findViewById(R.id.root_layout).setBackgroundColor(COLOR_BASE_FONDO);
-        findViewById(R.id.root_layout).setOnClickListener(v -> systemPanelManager.ocultar());
-    }
+    // ══════════════════════════════════════
+    //  Dialogo premium
+    // ══════════════════════════════════════
+
+
+    /*private void mostrarDialogPremium() {
+        View vista = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_premium, null);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(vista)
+                .setCancelable(false)   // no puede cerrarse sin pagar
+                .create();
+
+        // Botón comprar
+        vista.findViewById(R.id.btn_comprar).setOnClickListener(v ->
+                premiumManager.iniciarCompra(new PremiumManager.OnCompraListener() {
+                    @Override
+                    public void onCompraExitosa() {
+                        dialog.dismiss();
+                        mostrarMensaje("🎉 ¡Premium activado! Gracias por tu apoyo.");
+                    }
+
+                    @Override
+                    public void onCompraError(String mensaje) {
+                        mostrarMensaje("Error: " + mensaje);
+                    }
+                })
+        );
+
+        // Botón restaurar (para quien ya compró en otro dispositivo)
+        vista.findViewById(R.id.btn_restaurar).setOnClickListener(v ->
+                premiumManager.verificarComprasPendientes(new PremiumManager.OnCompraListener() {
+                    @Override
+                    public void onCompraExitosa() {
+                        dialog.dismiss();
+                        mostrarMensaje("✓ Compra restaurada correctamente.");
+                    }
+
+                    @Override
+                    public void onCompraError(String mensaje) {
+                        mostrarMensaje("No se encontró una compra previa.");
+                    }
+                })
+        );
+
+        dialog.show();
+    }*/
+
 
     // ══════════════════════════════════════
     //  RESULTADOS Y PERMISOS

@@ -159,7 +159,7 @@
             android:layout_weight="1"
             android:rowCount="1"
             android:columnCount="3"
-            android:paddingBottom="10dp">
+            >
 
             <!-- ── Columna 1: Velocímetro con anillo circular (LEFT) ── -->
             <LinearLayout
@@ -168,8 +168,9 @@
                 android:layout_height="match_parent"
                 android:layout_columnWeight="1"
                 android:gravity="center"
+                android:paddingTop="5dp"
                 android:orientation="vertical"
-                android:visibility="gone">
+                android:visibility="visible">
 
                 <codigo.cafe.alsvinlaunch.views.SpeedometerView
                     android:id="@+id/speedometer_view"
@@ -228,13 +229,13 @@
                 android:gravity="center"
                 android:background="@drawable/shortcut_bg"
                 android:padding="10dp"
-                android:layout_marginTop="12dp"
+
                 android:layout_marginStart="12dp"
                 android:layout_marginEnd="12dp"
                 android:layout_marginBottom="12dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:visibility="gone">
+                android:visibility="visible">
 
                 <!-- Portada + título/artista -->
                 <LinearLayout
@@ -322,7 +323,6 @@
                         android:padding="10dp"
                         android:layout_marginStart="10dp"
                         android:layout_marginEnd="10dp"
-                        android:background="@drawable/shortcut_bg_accent"
                         android:clickable="true"
                         android:focusable="true"
                         android:elevation="2dp" />
