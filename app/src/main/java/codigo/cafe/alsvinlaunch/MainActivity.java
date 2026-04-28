@@ -6,10 +6,17 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -29,16 +36,11 @@ import codigo.cafe.alsvinlaunch.managers.KioskManager;
 import codigo.cafe.alsvinlaunch.managers.MediaWidgetManager;
 import codigo.cafe.alsvinlaunch.managers.NotifPanelManager;
 import codigo.cafe.alsvinlaunch.managers.PermissionsManager;
+import codigo.cafe.alsvinlaunch.managers.PremiumManager;
 import codigo.cafe.alsvinlaunch.managers.ShortcutManager;
 import codigo.cafe.alsvinlaunch.managers.SpeedManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
 import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
-
-import android.app.AlertDialog;
-import android.view.LayoutInflater;
-import android.view.View;
-
-import codigo.cafe.alsvinlaunch.managers.PremiumManager;
 
 /**
  * Actividad principal del launcher.
@@ -53,6 +55,15 @@ public class MainActivity extends Activity {
     // Código de solicitud para el permiso de ubicación
     private static final int SOLICITUD_PERMISO_GPS = 200;
 
+    // Hora mínima válida — antes de esto consideramos que el RTC no se sincronizó.
+    // Evita la cascada que congela la app cuando el reloj salta de 2006 a la hora real.
+    private static final long TIEMPO_MINIMO_VALIDO = 1_735_689_600_000L; // 2025-01-01 UTC
+    private static final long TIMEOUT_ESPERA_HORA_MS = 30_000L;
+    private static final long DELAY_RECREATE_TRAS_TIMECHANGE_MS = 3_000L;
+
+    // Sobrevive a recreate(). Si se activa por timeout, no reentramos en modo espera.
+    private static boolean omitirEsperaHora = false;
+
     // ── Managers ──
     private ClockManager clockManager;
     private ShortcutManager shortcutManager;
@@ -65,13 +76,16 @@ public class MainActivity extends Activity {
     private BtNotifReceiverManager btNotifReceiver;
     private NotifPanelManager notifPanelManager;
     private SpeedManager speedManager;
-    //private PremiumManager premiumManager;
+    private PremiumManager premiumManager;
     // ── Estado ──
     private boolean abriendoApp = false;
     private boolean modoColorDinamico = false;
     private int colorActualFondo = COLOR_BASE_FONDO;
     private boolean primerResume = true;
     private boolean pantallaBloqueada = false;
+    private boolean modoEsperaHora = false;
+    private BroadcastReceiver receptorEsperaHora;
+    private final Handler handlerEspera = new Handler(Looper.getMainLooper());
 
     // ── Vistas directas ──
     private TextView textoReloj;
@@ -94,18 +108,77 @@ public class MainActivity extends Activity {
 
         prefs = getSharedPreferences(NOMBRE_PREFS, MODE_PRIVATE);
 
-        //premiumManager = new PremiumManager(this, prefs);
-        // ── Buscar vistas ──
+        // ── Vistas directas (siempre necesarias) ──
         textoReloj = findViewById(R.id.clock_text);
         textoFecha = findViewById(R.id.date_text);
         botonBloqueo = findViewById(R.id.btn_theme_toggle);
         topBar = findViewById(R.id.top_bar);
+
+        // ── Reloj siempre activo, incluso con fecha incorrecta ──
+        clockManager = new ClockManager(this, textoReloj, textoFecha);
+
+        // Si el RTC no tiene batería, el headunit arranca en 2006 y NTP
+        // luego salta ~20 años. Esa cascada (alarmas atrasadas, re-sync
+        // de MediaSessionManager, re-validación SSL…) congela la Activity.
+        // Posponemos el init pesado hasta que la hora sea válida.
+        if (!omitirEsperaHora && !tiempoValido()) {
+            iniciarModoEsperaHora();
+            return;
+        }
+
+        inicializarManagersCompletos();
+    }
+
+    // ══════════════════════════════════════
+    //  MODO ESPERA POR HORA INVÁLIDA
+    // ══════════════════════════════════════
+
+    private boolean tiempoValido() {
+        return System.currentTimeMillis() >= TIEMPO_MINIMO_VALIDO;
+    }
+
+    private void iniciarModoEsperaHora() {
+        modoEsperaHora = true;
+
+        receptorEsperaHora = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (tiempoValido()) procesarTimeChangeValido();
+            }
+        };
+        IntentFilter filtro = new IntentFilter();
+        filtro.addAction(Intent.ACTION_TIME_CHANGED);
+        filtro.addAction(Intent.ACTION_DATE_CHANGED);
+        registerReceiver(receptorEsperaHora, filtro);
+
+        // Fallback: si NTP nunca llega (sin internet), tras 30 s
+        // inicializamos igual para que el launcher sea funcional.
+        handlerEspera.postDelayed(() -> {
+            if (!modoEsperaHora) return;
+            omitirEsperaHora = true;
+            if (!isFinishing() && !isDestroyed()) recreate();
+        }, TIMEOUT_ESPERA_HORA_MS);
+    }
+
+    private void procesarTimeChangeValido() {
+        // Damos unos segundos al sistema para que termine la cascada
+        // de eventos antes de recrear con un estado limpio.
+        handlerEspera.removeCallbacksAndMessages(null);
+        handlerEspera.postDelayed(() -> {
+            if (!isFinishing() && !isDestroyed()) recreate();
+        }, DELAY_RECREATE_TRAS_TIMECHANGE_MS);
+    }
+
+    // ══════════════════════════════════════
+    //  INICIALIZACIÓN COMPLETA
+    // ══════════════════════════════════════
+
+    private void inicializarManagersCompletos() {
         LinearLayout panelSistema = findViewById(R.id.system_panel);
 
         // ── Inicializar managers ──
-        clockManager = new ClockManager(this, textoReloj, textoFecha);
         kioskManager = new KioskManager(this, prefs);
-        speedManager = new SpeedManager(this);               // ← NUEVO
+        speedManager = new SpeedManager(this);
 
         permissionsManager = new PermissionsManager(this);
         permissionsManager.setOnAbrirAjustesListener(() -> abriendoApp = true);
@@ -169,11 +242,10 @@ public class MainActivity extends Activity {
             }
         });
 
-        // ── Configurar vistas y botones (solo una vez en onCreate) ──
+        // ── Configurar vistas y botones ──
         shortcutManager.precargarSiNecesario();
         shortcutManager.configurarVistas(() -> systemPanelManager.ocultar());
         systemPanelManager.construir();
-
 
         configurarReloj();
         configurarBotonBloqueo();
@@ -182,27 +254,28 @@ public class MainActivity extends Activity {
         configurarIndicadoresEstado();
         configurarReproductor();
 
-        // ── Carga inicial de datos (solo onCreate, no onResume) ──
+        // ── Carga inicial de datos ──
         shortcutManager.cargar();
         permissionsManager.verificar();
 
-        // ── Pedir permiso GPS si no lo tenemos aún ──        // ← NUEVO
         solicitarPermisoGpsSiNecesario();
 
-        /*premiumManager.verificar(tieneAcceso -> {
-
+        // ── Premium / trial ──
+        // PremiumManager espera internamente a que la fecha sea válida
+        // antes de fallar, así que es seguro llamarlo aquí incluso si el
+        // init completo se gatilló por timeout sin internet.
+        premiumManager = new PremiumManager(this, prefs);
+        premiumManager.verificar(tieneAcceso -> {
             if (!tieneAcceso) {
                 runOnUiThread(this::mostrarDialogPremium);
             } else if (!premiumManager.esPremium()) {
-                // Mostrar días restantes en un Toast suave
                 int dias = premiumManager.diasRestantesTrial();
                 if (dias <= 3) {
                     runOnUiThread(() ->
                             mostrarMensaje("⏳ Trial: " + dias + " día(s) restante(s)"));
                 }
             }
-        });*/
-
+        });
     }
 
     // ══════════════════════════════════════
@@ -213,18 +286,22 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         clockManager.iniciar();
+        if (modoEsperaHora) return;
+
         mediaWidgetManager.iniciar();
         statusIndicatorManager.iniciar();
-        speedManager.iniciar();                               // ← NUEVO
+        speedManager.iniciar();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         clockManager.detener();
+        if (modoEsperaHora) return;
+
         mediaWidgetManager.detener();
         statusIndicatorManager.detener();
-        speedManager.detener();                               // ← NUEVO
+        speedManager.detener();
     }
 
     // ══════════════════════════════════════
@@ -234,10 +311,12 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        clockManager.actualizar();
+        if (modoEsperaHora) return;
+
         abriendoApp = false;
         kioskManager.cancelarRetorno();
 
-        clockManager.actualizar();
         mediaWidgetManager.actualizar();
         statusIndicatorManager.actualizar();
 
@@ -253,19 +332,19 @@ public class MainActivity extends Activity {
         TextView titulo = findViewById(R.id.reproductor_titulo);
         if (titulo != null) titulo.setSelected(true);
 
-/*        premiumManager.verificarComprasPendientes(new PremiumManager.OnCompraListener() {
-            @Override
-            public void onCompraExitosa() {
-                mostrarMensaje("✓ Premium activado. ¡Gracias!");
-            }
+        if (premiumManager != null) {
+            premiumManager.verificarComprasPendientes(new PremiumManager.OnCompraListener() {
+                @Override
+                public void onCompraExitosa() {
+                    mostrarMensaje("✓ Premium activado. ¡Gracias!");
+                }
 
-            @Override
-            public void onCompraError(String mensaje) {
-                // silencioso en onResume
-            }
-        });
-*/
-
+                @Override
+                public void onCompraError(String mensaje) {
+                    // silencioso en onResume
+                }
+            });
+        }
     }
 
     // ══════════════════════════════════════
@@ -275,6 +354,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (modoEsperaHora) return;
+
         systemPanelManager.ocultar();
 
         if (!abriendoApp && kioskManager.isActivo()) {
@@ -289,21 +370,38 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        clockManager.detener();
+
+        if (clockManager != null) clockManager.detener();
+
+        // Limpieza del modo espera (tanto si seguimos en él como si ya salimos)
+        handlerEspera.removeCallbacksAndMessages(null);
+        if (receptorEsperaHora != null) {
+            try {
+                unregisterReceiver(receptorEsperaHora);
+            } catch (IllegalArgumentException ignored) {
+            }
+            receptorEsperaHora = null;
+        }
+
+        if (modoEsperaHora) {
+            textoReloj = null;
+            textoFecha = null;
+            botonBloqueo = null;
+            return;
+        }
+
         mediaWidgetManager.destruir();
         kioskManager.destruir();
         statusIndicatorManager.detener();
-        speedManager.destruir();                              // ← NUEVO
+        speedManager.destruir();
         contactsDialogHelper.setOnAppOpenListener(null);
 
         if (btNotifReceiver != null) btNotifReceiver.detener();
+        if (premiumManager != null) premiumManager.destruir();
 
         textoReloj = null;
         textoFecha = null;
         botonBloqueo = null;
-
-        // if (premiumManager != null) premiumManager.destruir();
-
     }
 
     // ══════════════════════════════════════
@@ -312,6 +410,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
+        if (modoEsperaHora) return;
         if (systemPanelManager.isVisible()) {
             systemPanelManager.ocultar();
         }
@@ -527,7 +626,7 @@ public class MainActivity extends Activity {
     // ══════════════════════════════════════
 
 
-    /*private void mostrarDialogPremium() {
+    private void mostrarDialogPremium() {
         View vista = LayoutInflater.from(this)
                 .inflate(R.layout.dialog_premium, null);
 
@@ -569,7 +668,7 @@ public class MainActivity extends Activity {
         );
 
         dialog.show();
-    }*/
+    }
 
 
     // ══════════════════════════════════════

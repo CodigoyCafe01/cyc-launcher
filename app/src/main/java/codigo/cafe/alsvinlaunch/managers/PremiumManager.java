@@ -1,6 +1,10 @@
 package codigo.cafe.alsvinlaunch.managers;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.util.Log;
 
@@ -52,6 +56,11 @@ public class PremiumManager {
     private       BillingClient   billingClient;
     private       ProductDetails  productoDetails;
 
+    // Si la fecha es inválida al llamar verificar(), guardamos el listener
+    // y esperamos a ACTION_TIME_CHANGED para reverificar con fecha buena.
+    private BroadcastReceiver receptorFecha;
+    private OnAccesoListener  listenerPendiente;
+
     public interface OnAccesoListener {
         /** @param tieneAcceso true = puede usar la app (trial o premium) */
         void onResultado(boolean tieneAcceso);
@@ -80,6 +89,11 @@ public class PremiumManager {
     /**
      * Verifica si el usuario tiene acceso (trial vigente o ya pagó).
      * Siempre llama al listener en el hilo principal.
+     *
+     * Si la fecha del sistema aún no es confiable (RTC sin batería en
+     * headunits), no fallamos de inmediato: registramos un receptor para
+     * ACTION_TIME_CHANGED y reverificamos cuando NTP corrija la hora.
+     * Así el diálogo de pago no se abre en seco con fecha 2006.
      */
     public void verificar(OnAccesoListener listener) {
         if (listener == null) return;
@@ -90,10 +104,9 @@ public class PremiumManager {
             return;
         }
 
-        // 2. Validar que la fecha del dispositivo sea confiable
+        // 2. Si la fecha del sistema no es confiable, esperar a que se corrija
         if (!fechaDispositivoEsValida()) {
-            // Fecha sospechosa (antes de 2026) → bloqueamos acceso
-            listener.onResultado(false);
+            esperarFechaValida(listener);
             return;
         }
 
@@ -104,6 +117,41 @@ public class PremiumManager {
 
         boolean trialActivo = diasTranscurridos < DIAS_TRIAL;
         listener.onResultado(trialActivo);
+    }
+
+    /**
+     * Aplaza la verificación hasta que el reloj del sistema sea válido.
+     * Si ya hay un listener esperando, lo reemplaza por el nuevo.
+     */
+    private void esperarFechaValida(OnAccesoListener listener) {
+        listenerPendiente = listener;
+
+        if (receptorFecha != null) return; // ya hay receptor registrado
+
+        receptorFecha = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (!fechaDispositivoEsValida()) return;
+
+                try {
+                    activity.unregisterReceiver(this);
+                } catch (IllegalArgumentException ignored) {
+                }
+                receptorFecha = null;
+
+                // Ahora que la fecha es buena, registrar/sanar la fecha
+                // de instalación si nunca se guardó o si era de 2006.
+                registrarFechaInstalacionSiNecesario();
+
+                OnAccesoListener pendiente = listenerPendiente;
+                listenerPendiente = null;
+                if (pendiente != null) verificar(pendiente);
+            }
+        };
+        IntentFilter filtro = new IntentFilter();
+        filtro.addAction(Intent.ACTION_TIME_CHANGED);
+        filtro.addAction(Intent.ACTION_DATE_CHANGED);
+        activity.registerReceiver(receptorFecha, filtro);
     }
 
     /**
@@ -161,6 +209,15 @@ public class PremiumManager {
 
     /** Libera recursos — llamar desde onDestroy() */
     public void destruir() {
+        if (receptorFecha != null) {
+            try {
+                activity.unregisterReceiver(receptorFecha);
+            } catch (IllegalArgumentException ignored) {
+            }
+            receptorFecha = null;
+        }
+        listenerPendiente = null;
+
         if (billingClient != null) {
             billingClient.endConnection();
             billingClient = null;
@@ -172,11 +229,27 @@ public class PremiumManager {
     // ══════════════════════════════════════════════════════
 
     private void registrarFechaInstalacionSiNecesario() {
-        if (!prefs.contains(PREF_FECHA_INSTALL)) {
+        // Si la fecha del sistema no es confiable, NO escribimos nada.
+        // Si lo hiciéramos ahora con el RTC en 2006, guardaríamos
+        // "fecha de instalación = 2006" y al corregirse NTP el trial
+        // aparecería como expirado por 20 años.
+        if (!fechaDispositivoEsValida()) return;
+
+        long stored = prefs.getLong(PREF_FECHA_INSTALL, 0L);
+
+        // Primer registro o sanación de un valor previo corrupto
+        // (instalado por una versión anterior antes de este parche).
+        if (stored == 0L || fechaInstalacionCorrupta(stored)) {
             prefs.edit()
                     .putLong(PREF_FECHA_INSTALL, System.currentTimeMillis())
                     .apply();
         }
+    }
+
+    private boolean fechaInstalacionCorrupta(long stored) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(stored);
+        return cal.get(Calendar.YEAR) < ANO_MINIMO;
     }
 
     /**
