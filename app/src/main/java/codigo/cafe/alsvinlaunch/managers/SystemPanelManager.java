@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import codigo.cafe.alsvinlaunch.R;
 import codigo.cafe.alsvinlaunch.util.ConstantesSistema;
@@ -131,6 +132,9 @@ public class SystemPanelManager {
             Intent intent = new Intent();
             intent.setComponent(new ComponentName(app.packageName, app.className));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            for (Map.Entry<String, String> e : app.extras.entrySet()) {
+                intent.putExtra(e.getKey(), e.getValue());
+            }
             actividad.startActivity(intent);
         } catch (Exception e) {
             if (listener != null) listener.onAppOpenFailed();

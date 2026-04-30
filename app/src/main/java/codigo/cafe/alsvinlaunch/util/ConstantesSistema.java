@@ -33,6 +33,14 @@ public class ConstantesSistema {
     public static final String ACTIVIDAD_INFO_AUTO  = "com.ts.main.CStudy.CStudyMainActivity";
     public static final String ACTIVIDAD_ADAS       = "com.ts.main.Media.ADASMainActivity";
 
+    // ── HeadUnit Revived (Android Auto host) ──
+    public static final String PAQUETE_HEADUNIT       = "com.andrerinas.headunitrevived";
+    public static final String ACTIVIDAD_HU_MAIN      = "com.andrerinas.headunitrevived.main.MainActivity";
+    public static final String ACTIVIDAD_HU_SETTINGS  = "com.andrerinas.headunitrevived.main.SettingsActivity";
+    // Extra keys consumed by SettingsActivity to deep-link into a sub-screen.
+    public static final String EXTRA_HU_START_DEST   = "start_destination";
+    public static final String HU_DEST_USB           = "usb";
+
     // ── Apps del panel del sistema (las que aparecen en el FAB) ──
     public static final SystemApp[] APPS_PANEL_SISTEMA = {
             new SystemApp("Teléfono",    PAQUETE_HIVEOS, ACTIVIDAD_TELEFONO,   R.drawable.ic_phone),
@@ -43,6 +51,9 @@ public class ConstantesSistema {
             new SystemApp("Ajustes",     PAQUETE_HIVEOS, ACTIVIDAD_AJUSTES,    R.drawable.ic_settings),
             new SystemApp("Cámara Reversa", PAQUETE_HIVEOS, ACTIVIDAD_CAMARA, R.drawable.ic_camera),
             new SystemApp("Info Auto",   PAQUETE_HIVEOS, ACTIVIDAD_INFO_AUTO,  R.drawable.ic_car),
+            new SystemApp("USB (HeadUnit)",       PAQUETE_HEADUNIT, ACTIVIDAD_HU_SETTINGS, R.drawable.ic_usb,
+                    SystemApp.extra(EXTRA_HU_START_DEST, HU_DEST_USB)),
+            new SystemApp("Configuración HeadUnit", PAQUETE_HEADUNIT, ACTIVIDAD_HU_SETTINGS, R.drawable.ic_settings),
 
     };
 

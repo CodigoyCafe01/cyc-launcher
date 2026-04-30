@@ -6,7 +6,6 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -16,7 +15,6 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -32,11 +30,11 @@ import codigo.cafe.alsvinlaunch.managers.BluetoothContactsManager;
 import codigo.cafe.alsvinlaunch.managers.BtNotifReceiverManager;
 import codigo.cafe.alsvinlaunch.managers.ClockManager;
 import codigo.cafe.alsvinlaunch.managers.ContactsDialogHelper;
+import codigo.cafe.alsvinlaunch.managers.DonationManager;
 import codigo.cafe.alsvinlaunch.managers.KioskManager;
 import codigo.cafe.alsvinlaunch.managers.MediaWidgetManager;
 import codigo.cafe.alsvinlaunch.managers.NotifPanelManager;
 import codigo.cafe.alsvinlaunch.managers.PermissionsManager;
-import codigo.cafe.alsvinlaunch.managers.PremiumManager;
 import codigo.cafe.alsvinlaunch.managers.ShortcutManager;
 import codigo.cafe.alsvinlaunch.managers.SpeedManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
@@ -76,7 +74,8 @@ public class MainActivity extends Activity {
     private BtNotifReceiverManager btNotifReceiver;
     private NotifPanelManager notifPanelManager;
     private SpeedManager speedManager;
-    private PremiumManager premiumManager;
+    private DonationManager donationManager;
+    private View botonDonacion;
     // ── Estado ──
     private boolean abriendoApp = false;
     private boolean modoColorDinamico = false;
@@ -260,22 +259,9 @@ public class MainActivity extends Activity {
 
         solicitarPermisoGpsSiNecesario();
 
-        // ── Premium / trial ──
-        // PremiumManager espera internamente a que la fecha sea válida
-        // antes de fallar, así que es seguro llamarlo aquí incluso si el
-        // init completo se gatilló por timeout sin internet.
-        premiumManager = new PremiumManager(this, prefs);
-        premiumManager.verificar(tieneAcceso -> {
-            if (!tieneAcceso) {
-                runOnUiThread(this::mostrarDialogPremium);
-            } else if (!premiumManager.esPremium()) {
-                int dias = premiumManager.diasRestantesTrial();
-                if (dias <= 3) {
-                    runOnUiThread(() ->
-                            mostrarMensaje("⏳ Trial: " + dias + " día(s) restante(s)"));
-                }
-            }
-        });
+        // ── Donación opcional ──
+        donationManager = new DonationManager(this, prefs);
+        configurarBotonDonacion();
     }
 
     // ══════════════════════════════════════
@@ -332,15 +318,17 @@ public class MainActivity extends Activity {
         TextView titulo = findViewById(R.id.reproductor_titulo);
         if (titulo != null) titulo.setSelected(true);
 
-        if (premiumManager != null) {
-            premiumManager.verificarComprasPendientes(new PremiumManager.OnCompraListener() {
+        if (donationManager != null) {
+            actualizarVisibilidadDonacion();
+            donationManager.verificarComprasPendientes(new DonationManager.OnDonacionListener() {
                 @Override
-                public void onCompraExitosa() {
-                    mostrarMensaje("✓ Premium activado. ¡Gracias!");
+                public void onDonacionExitosa() {
+                    mostrarMensaje("✓ Donación restaurada. ¡Gracias!");
+                    actualizarVisibilidadDonacion();
                 }
 
                 @Override
-                public void onCompraError(String mensaje) {
+                public void onDonacionError(String mensaje) {
                     // silencioso en onResume
                 }
             });
@@ -397,7 +385,7 @@ public class MainActivity extends Activity {
         contactsDialogHelper.setOnAppOpenListener(null);
 
         if (btNotifReceiver != null) btNotifReceiver.detener();
-        if (premiumManager != null) premiumManager.destruir();
+        if (donationManager != null) donationManager.destruir();
 
         textoReloj = null;
         textoFecha = null;
@@ -519,9 +507,6 @@ public class MainActivity extends Activity {
                 }
             }
         });
-
-        findViewById(R.id.boton_contactos).setOnClickListener(
-                v -> contactsDialogHelper.mostrar());
     }
 
     private void configurarReproductor() {
@@ -622,52 +607,34 @@ public class MainActivity extends Activity {
     }
 
     // ══════════════════════════════════════
-    //  Dialogo premium
+    //  Botón de donación
     // ══════════════════════════════════════
 
+    private void configurarBotonDonacion() {
+        botonDonacion = findViewById(R.id.btn_donacion);
+        if (botonDonacion == null) return;
 
-    private void mostrarDialogPremium() {
-        View vista = LayoutInflater.from(this)
-                .inflate(R.layout.dialog_premium, null);
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setView(vista)
-                .setCancelable(false)   // no puede cerrarse sin pagar
-                .create();
-
-        // Botón comprar
-        vista.findViewById(R.id.btn_comprar).setOnClickListener(v ->
-                premiumManager.iniciarCompra(new PremiumManager.OnCompraListener() {
+        botonDonacion.setOnClickListener(v ->
+                donationManager.iniciarDonacion(new DonationManager.OnDonacionListener() {
                     @Override
-                    public void onCompraExitosa() {
-                        dialog.dismiss();
-                        mostrarMensaje("🎉 ¡Premium activado! Gracias por tu apoyo.");
+                    public void onDonacionExitosa() {
+                        mostrarMensaje("🎉 ¡Gracias por tu apoyo!");
+                        actualizarVisibilidadDonacion();
                     }
 
                     @Override
-                    public void onCompraError(String mensaje) {
+                    public void onDonacionError(String mensaje) {
                         mostrarMensaje("Error: " + mensaje);
                     }
                 })
         );
 
-        // Botón restaurar (para quien ya compró en otro dispositivo)
-        vista.findViewById(R.id.btn_restaurar).setOnClickListener(v ->
-                premiumManager.verificarComprasPendientes(new PremiumManager.OnCompraListener() {
-                    @Override
-                    public void onCompraExitosa() {
-                        dialog.dismiss();
-                        mostrarMensaje("✓ Compra restaurada correctamente.");
-                    }
+        actualizarVisibilidadDonacion();
+    }
 
-                    @Override
-                    public void onCompraError(String mensaje) {
-                        mostrarMensaje("No se encontró una compra previa.");
-                    }
-                })
-        );
-
-        dialog.show();
+    private void actualizarVisibilidadDonacion() {
+        if (botonDonacion == null || donationManager == null) return;
+        botonDonacion.setVisibility(donationManager.haDonado() ? View.GONE : View.VISIBLE);
     }
 
 
