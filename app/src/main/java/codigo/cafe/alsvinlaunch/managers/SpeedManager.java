@@ -32,13 +32,16 @@ public class SpeedManager {
     private static final float UMBRAL_MS     = 0.5f; // ~1.8 km/h
     private static final int   MAX_KMH       = 120;
 
-    // Cortes de subida de marcha (km/h): 1→2, 2→3, 3→4, 4→5
-    private static final int[] CORTES_MARCHA = {20, 35, 55, 80};
-    private static final int   HISTERESIS    = 2; // km/h de margen para no parpadear
+    // Histéresis (km/h) — margen para que el indicador no parpadee al rondar un umbral
+    private static final int   HISTERESIS    = 2;
 
     private final Activity        actividad;
     private final SpeedometerView speedometerView;
     private final TextView        gearIndicator;
+
+    // Cortes de subida de marcha (km/h): 1→2, 2→3, 3→4, 4→5
+    // Cargados desde SharedPreferences vía GearRangesDialog (configurable).
+    private int[] cortesMarcha;
 
     private LocationManager  locationManager;
     private LocationListener listener;
@@ -49,6 +52,15 @@ public class SpeedManager {
         this.actividad       = actividad;
         this.speedometerView = actividad.findViewById(R.id.speedometer_view);
         this.gearIndicator   = actividad.findViewById(R.id.gear_indicator);
+        this.cortesMarcha    = GearRangesDialog.cortesGuardados(actividad);
+    }
+
+    /** Recarga los cortes desde SharedPreferences (llamar tras editar). */
+    public void recargarCortes() {
+        this.cortesMarcha = GearRangesDialog.cortesGuardados(actividad);
+        // Forzar recálculo en el próximo update — reseteamos para que
+        // la rama "veníamos de parado" reasigne en el rango correcto
+        marchaActual = 0;
     }
 
     // ── Ciclo de vida ──────────────────────────────────────────────
@@ -161,16 +173,16 @@ public class SpeedManager {
 
         if (marchaActual == 0) {
             // Veníamos de parado: encajar directamente en el rango correcto
-            if      (kmh < CORTES_MARCHA[0]) marchaActual = 1;
-            else if (kmh < CORTES_MARCHA[1]) marchaActual = 2;
-            else if (kmh < CORTES_MARCHA[2]) marchaActual = 3;
-            else if (kmh < CORTES_MARCHA[3]) marchaActual = 4;
-            else                              marchaActual = 5;
+            if      (kmh < cortesMarcha[0]) marchaActual = 1;
+            else if (kmh < cortesMarcha[1]) marchaActual = 2;
+            else if (kmh < cortesMarcha[2]) marchaActual = 3;
+            else if (kmh < cortesMarcha[3]) marchaActual = 4;
+            else                             marchaActual = 5;
         } else if (marchaActual < 5
-                && kmh >= CORTES_MARCHA[marchaActual - 1] + HISTERESIS) {
+                && kmh >= cortesMarcha[marchaActual - 1] + HISTERESIS) {
             marchaActual++;
         } else if (marchaActual > 1
-                && kmh < CORTES_MARCHA[marchaActual - 2] - HISTERESIS) {
+                && kmh < cortesMarcha[marchaActual - 2] - HISTERESIS) {
             marchaActual--;
         }
 

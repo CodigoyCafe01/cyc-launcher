@@ -90,25 +90,66 @@ public class ShortcutManager {
     }
 
     public void cargar() {
-        PackageManager pm = actividad.getPackageManager();
+        final PackageManager pm = actividad.getPackageManager();
+
+        // Snapshot rápido de prefs (ya están en caché) + etiquetas inmediatas.
+        // Los iconos los resolvemos en background porque pm.getActivityIcon()
+        // puede tardar cientos de ms por app en el primer acceso "frío".
+        final String[] paquetes = new String[CANTIDAD_ACCESOS];
+        final String[] clases   = new String[CANTIDAD_ACCESOS];
+        final String[] nombres  = new String[CANTIDAD_ACCESOS];
+
         for (int i = 0; i < CANTIDAD_ACCESOS; i++) {
-            String paquete = prefs.getString("acceso_paquete_" + i, null);
-            String clase = prefs.getString("acceso_clase_" + i, null);
-            String nombre = prefs.getString("acceso_nombre_" + i, null);
-            ImageView icono = (ImageView) actividad.findViewById(IDS_ICONOS[i]);
-            TextView etiqueta = (TextView) actividad.findViewById(IDS_NOMBRES[i]);
-            if (paquete != null && clase != null) {
-                try {
-                    Drawable iconoApp = pm.getActivityIcon(new ComponentName(paquete, clase));
-                    icono.setImageDrawable(iconoApp);
-                    etiqueta.setText(nombre != null ? nombre : paquete);
-                } catch (PackageManager.NameNotFoundException e) {
-                    establecerVacio(icono, etiqueta, i);
-                }
+            paquetes[i] = prefs.getString("acceso_paquete_" + i, null);
+            clases[i]   = prefs.getString("acceso_clase_" + i, null);
+            nombres[i]  = prefs.getString("acceso_nombre_" + i, null);
+
+            ImageView icono = actividad.findViewById(IDS_ICONOS[i]);
+            TextView etiqueta = actividad.findViewById(IDS_NOMBRES[i]);
+            if (paquetes[i] != null && clases[i] != null) {
+                // Placeholder hasta que llegue el icono real
+                icono.setImageResource(R.drawable.ic_add_shortcut);
+                etiqueta.setText(nombres[i] != null ? nombres[i] : paquetes[i]);
             } else {
                 establecerVacio(icono, etiqueta, i);
             }
         }
+
+        new Thread(() -> {
+            final Drawable[] iconos = new Drawable[CANTIDAD_ACCESOS];
+            final boolean[] noEncontrado = new boolean[CANTIDAD_ACCESOS];
+            for (int i = 0; i < CANTIDAD_ACCESOS; i++) {
+                if (paquetes[i] != null && clases[i] != null) {
+                    try {
+                        // Intento 1: icono de la actividad específica
+                        iconos[i] = pm.getActivityIcon(
+                                new ComponentName(paquetes[i], clases[i]));
+                    } catch (PackageManager.NameNotFoundException e) {
+                        try {
+                            // Intento 2: icono del paquete (cubre apps ocultas del sistema)
+                            iconos[i] = pm.getApplicationIcon(paquetes[i]);
+                        } catch (PackageManager.NameNotFoundException ex) {
+                            noEncontrado[i] = true;
+                        }
+                    }
+                }
+            }
+            actividad.runOnUiThread(() -> {
+                if (actividad.isFinishing() || actividad.isDestroyed()) return;
+                for (int i = 0; i < CANTIDAD_ACCESOS; i++) {
+                    ImageView icono = actividad.findViewById(IDS_ICONOS[i]);
+                    TextView etiqueta = actividad.findViewById(IDS_NOMBRES[i]);
+                    if (icono == null || etiqueta == null) continue;
+                    if (iconos[i] != null) {
+                        icono.setImageDrawable(iconos[i]);
+                    } else if (noEncontrado[i]) {
+                        // Paquete no encontrado: solo placeholder de icono,
+                        // conservar el label guardado (no resetear al predefinido)
+                        icono.setImageResource(R.drawable.ic_add_shortcut);
+                    }
+                }
+            });
+        }, "shortcut-icons").start();
     }
 
     public void abrir(int indice) {

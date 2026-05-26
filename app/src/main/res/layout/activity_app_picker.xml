@@ -24,13 +24,42 @@
             android:layout_centerVertical="true" />
 
         <TextView
+            android:id="@+id/tv_titulo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="Elegir App"
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/btn_toggle_sistema"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/boton_agregar_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:text="Sistema"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
     </RelativeLayout>
+
+    <TextView
+        android:id="@+id/tv_cargando"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/header"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="Cargando apps del sistema..."
+        android:textColor="#AAAAAA"
+        android:textSize="14sp"
+        android:visibility="gone" />
 
     <GridView
         android:id="@+id/picker_grid"

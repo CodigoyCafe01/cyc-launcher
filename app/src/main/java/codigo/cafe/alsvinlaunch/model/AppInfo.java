@@ -4,6 +4,7 @@ import android.graphics.drawable.Drawable;
 
 public class AppInfo {
     private String label;
+    private String displayLabel; // label con contexto para mostrar en listas (ej. "Nombre · App")
     private String packageName;
     private String className;
     private Drawable icon;
@@ -14,6 +15,15 @@ public class AppInfo {
 
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    /** Devuelve displayLabel si está definido, si no cae al label normal. */
+    public String getDisplayLabel() {
+        return (displayLabel != null && !displayLabel.isEmpty()) ? displayLabel : label;
+    }
+
+    public void setDisplayLabel(String displayLabel) {
+        this.displayLabel = displayLabel;
     }
 
     public String getPackageName() {

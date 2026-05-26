@@ -17,6 +17,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -39,6 +40,7 @@ import codigo.cafe.alsvinlaunch.managers.ShortcutManager;
 import codigo.cafe.alsvinlaunch.managers.SpeedManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
 import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
+import codigo.cafe.alsvinlaunch.managers.TourManager;
 
 /**
  * Actividad principal del launcher.
@@ -55,7 +57,7 @@ public class MainActivity extends Activity {
 
     // Hora mínima válida — antes de esto consideramos que el RTC no se sincronizó.
     // Evita la cascada que congela la app cuando el reloj salta de 2006 a la hora real.
-    private static final long TIEMPO_MINIMO_VALIDO = 1_735_689_600_000L; // 2025-01-01 UTC
+    private static final long TIEMPO_MINIMO_VALIDO = 1_767_225_600_000L; // 2026-01-01 UTC
     private static final long TIMEOUT_ESPERA_HORA_MS = 30_000L;
     private static final long DELAY_RECREATE_TRAS_TIMECHANGE_MS = 3_000L;
 
@@ -83,6 +85,10 @@ public class MainActivity extends Activity {
     private boolean primerResume = true;
     private boolean pantallaBloqueada = false;
     private boolean modoEsperaHora = false;
+    // Se pone a true al final de inicializarManagersCompletos(). Los métodos
+    // del ciclo de vida (onStart/onResume/...) que corren ANTES de que el
+    // Runnable diferido se ejecute deben hacer no-op mientras esto sea false.
+    private boolean managersListos = false;
     private BroadcastReceiver receptorEsperaHora;
     private final Handler handlerEspera = new Handler(Looper.getMainLooper());
 
@@ -107,6 +113,11 @@ public class MainActivity extends Activity {
 
         prefs = getSharedPreferences(NOMBRE_PREFS, MODE_PRIVATE);
 
+        // Pre-calentar prefs en hilo de fondo. La 1ª lectura desde el hilo UI
+        // bloquea mientras Android parsea el XML; haciéndolo aquí primero,
+        // cuando los managers lo lean luego, ya estará en caché.
+        precargarPrefsEnBackground();
+
         // ── Vistas directas (siempre necesarias) ──
         textoReloj = findViewById(R.id.clock_text);
         textoFecha = findViewById(R.id.date_text);
@@ -125,7 +136,29 @@ public class MainActivity extends Activity {
             return;
         }
 
-        inicializarManagersCompletos();
+        // Diferimos la inicialización pesada hasta DESPUÉS del primer frame:
+        // así el launcher aparece de inmediato y la creación de managers,
+        // findViewById en cadena y carga de iconos no bloquean la primera
+        // pintura. El usuario ve la UI al instante en lugar de pantalla
+        // congelada durante 1-2 segundos.
+        getWindow().getDecorView().post(this::inicializarManagersCompletos);
+    }
+
+    /**
+     * Fuerza la carga de los archivos SharedPreferences en un hilo de fondo.
+     * SharedPreferencesImpl carga el XML async, pero el 1er get* bloquea
+     * hasta que termina. Adelantar esto evita que el hilo UI se quede
+     * esperando cuando los managers empiezan a leer prefs.
+     */
+    private void precargarPrefsEnBackground() {
+        final SharedPreferences prefsPrincipal = prefs;
+        final SharedPreferences prefsContactos =
+                getSharedPreferences("contactos_locales", MODE_PRIVATE);
+        new Thread(() -> {
+            // getAll() fuerza la espera del load async
+            prefsPrincipal.getAll();
+            prefsContactos.getAll();
+        }, "prefs-warmup").start();
     }
 
     // ══════════════════════════════════════
@@ -178,6 +211,15 @@ public class MainActivity extends Activity {
         // ── Inicializar managers ──
         kioskManager = new KioskManager(this, prefs);
         speedManager = new SpeedManager(this);
+
+        // Click en el widget de marcha → diálogo para configurar rangos
+        View gearWidget = findViewById(R.id.gear_widget);
+        if (gearWidget != null) {
+            gearWidget.setOnClickListener(v ->
+                    codigo.cafe.alsvinlaunch.managers.GearRangesDialog.mostrar(
+                            this,
+                            () -> speedManager.recargarCortes()));
+        }
 
         permissionsManager = new PermissionsManager(this);
         permissionsManager.setOnAbrirAjustesListener(() -> abriendoApp = true);
@@ -262,6 +304,19 @@ public class MainActivity extends Activity {
         // ── Donación opcional ──
         donationManager = new DonationManager(this, prefs);
         configurarBotonDonacion();
+
+        // Los managers ya están listos: disparar lo que onStart / onResume
+        // intentaron ejecutar antes (saltaron porque managersListos == false).
+        managersListos = true;
+        mediaWidgetManager.iniciar();
+        statusIndicatorManager.iniciar();
+        speedManager.iniciar();
+        mediaWidgetManager.actualizar();
+        statusIndicatorManager.actualizar();
+
+        // Discovery tour — se muestra solo la primera vez que el usuario instala la app
+        FrameLayout rootLayout = findViewById(R.id.root_layout);
+        getWindow().getDecorView().post(() -> TourManager.showIfNeeded(this, rootLayout));
     }
 
     // ══════════════════════════════════════
@@ -273,6 +328,7 @@ public class MainActivity extends Activity {
         super.onStart();
         clockManager.iniciar();
         if (modoEsperaHora) return;
+        if (!managersListos) return; // se dispararán al final de inicializarManagersCompletos()
 
         mediaWidgetManager.iniciar();
         statusIndicatorManager.iniciar();
@@ -284,6 +340,7 @@ public class MainActivity extends Activity {
         super.onStop();
         clockManager.detener();
         if (modoEsperaHora) return;
+        if (!managersListos) return;
 
         mediaWidgetManager.detener();
         statusIndicatorManager.detener();
@@ -299,6 +356,7 @@ public class MainActivity extends Activity {
         super.onResume();
         clockManager.actualizar();
         if (modoEsperaHora) return;
+        if (!managersListos) return; // se reanudará al final de inicializarManagersCompletos()
 
         abriendoApp = false;
         kioskManager.cancelarRetorno();
@@ -343,6 +401,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         if (modoEsperaHora) return;
+        if (!managersListos) return;
 
         systemPanelManager.ocultar();
 
@@ -371,7 +430,9 @@ public class MainActivity extends Activity {
             receptorEsperaHora = null;
         }
 
-        if (modoEsperaHora) {
+        if (modoEsperaHora || !managersListos) {
+            // Si la Activity se destruye antes de completar la init diferida,
+            // no hay nada que liberar más allá de las vistas.
             textoReloj = null;
             textoFecha = null;
             botonBloqueo = null;
@@ -399,6 +460,7 @@ public class MainActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (modoEsperaHora) return;
+        if (!managersListos) return;
         if (systemPanelManager.isVisible()) {
             systemPanelManager.ocultar();
         }
@@ -473,10 +535,16 @@ public class MainActivity extends Activity {
     }
 
     private void configurarBotonApps() {
-        findViewById(R.id.btn_all_apps).setOnClickListener(v -> {
+        View btnApps = findViewById(R.id.btn_all_apps);
+        btnApps.setOnClickListener(v -> {
             systemPanelManager.ocultar();
             abriendoApp = true;
             startActivity(new Intent(this, AllAppsActivity.class));
+        });
+        btnApps.setOnLongClickListener(v -> {
+            FrameLayout rootLayout = findViewById(R.id.root_layout);
+            TourManager.show(this, rootLayout);
+            return true;
         });
     }
 
@@ -645,6 +713,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (!managersListos) return;
 
         if (requestCode == ShortcutManager.SOLICITUD_ELEGIR_APP) {
             shortcutManager.procesarResultado(requestCode, resultCode, data);
