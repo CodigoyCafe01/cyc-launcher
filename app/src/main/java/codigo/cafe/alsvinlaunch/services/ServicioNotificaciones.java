@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.MediaMetadata;
+import java.util.Locale;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
@@ -12,8 +13,12 @@ import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ServicioNotificaciones extends NotificationListenerService {
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     // Acción para enviar info de lo que suena
     public static final String ACCION_MEDIA_CAMBIO = "codigo.cafe.alsvinlaunch.MEDIA_CAMBIO";
@@ -33,6 +38,14 @@ public class ServicioNotificaciones extends NotificationListenerService {
     private static final String MUSIC_META_CHANGED  = "com.android.music.metachanged";
     private static final String MUSIC_PLAY_STATUS   = "com.android.music.playstatechanged";
     private static final String HICAR_META_CHANGED  = "android.bluetooth.a2dp.profile.action.PLAYING_STATE_CHANGED";
+    // Stacks MediaTek y otros OEM
+    private static final String MTK_AVRCP_META      = "com.mediatek.bluetooth.avrcp.TRACK_CHANGED";
+    private static final String AVRCP_META_CHANGED  = "android.media.METADATA_CHANGED";
+    private static final String AVRCP2_TRACK_EVENT  = "android.bluetooth.avrcp.action.TRACK_CHANGED";
+    // Headunit TS8227L (radio FM com.ts.main.radio)
+    private static final String TS_RADIO_INFO       = "com.ts.radio.ACTION_RADIO_INFO";
+    private static final String TS_RADIO_FREQ       = "com.ts.radio.FREQUENCY_CHANGED";
+    private static final String TS_MEDIA_META       = "com.ts.dvdplayer.MEDIA_META_CHANGED";
 
     private BroadcastReceiver receptorAvrcp;
 
@@ -47,6 +60,7 @@ public class ServicioNotificaciones extends NotificationListenerService {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        executor.shutdownNow();
         if (receptorAvrcp != null) {
             try { unregisterReceiver(receptorAvrcp); } catch (Exception ignored) {}
             receptorAvrcp = null;
@@ -56,17 +70,17 @@ public class ServicioNotificaciones extends NotificationListenerService {
     @Override
     public void onListenerConnected() {
         super.onListenerConnected();
-        verificarMediaActiva();
+        executor.execute(this::verificarMediaActiva);
     }
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        verificarMediaActiva();
+        executor.execute(this::verificarMediaActiva);
     }
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
-        verificarMediaActiva();
+        executor.execute(this::verificarMediaActiva);
     }
 
     // ── Receptor AVRCP ────────────────────────────────────────────────────────
@@ -114,6 +128,47 @@ public class ServicioNotificaciones extends NotificationListenerService {
                         album         = intent.getStringExtra("album");
                         break;
                     }
+                    case HICAR_META_CHANGED:
+                    case MTK_AVRCP_META:
+                    case AVRCP2_TRACK_EVENT:
+                    case AVRCP_META_CHANGED: {
+                        titulo  = primerNoVacio(
+                                intent.getStringExtra("title"),
+                                intent.getStringExtra("track"),
+                                intent.getStringExtra("name"));
+                        artista = primerNoVacio(
+                                intent.getStringExtra("artist"),
+                                intent.getStringExtra("performer"));
+                        album   = intent.getStringExtra("album");
+                        break;
+                    }
+                    case TS_RADIO_INFO:
+                    case TS_RADIO_FREQ: {
+                        // Radio FM del headunit TS8227L: la frecuencia viene como float o string
+                        String freq = primerNoVacio(
+                                intent.getStringExtra("frequency"),
+                                intent.getStringExtra("freq"));
+                        if (freq == null) {
+                            float freqF = intent.getFloatExtra("frequency", 0f);
+                            if (freqF > 0) freq = String.format(Locale.US, "%.1f MHz", freqF);
+                        } else {
+                            // Asegurarse que tenga unidad
+                            if (!freq.contains("MHz") && !freq.contains("FM")) {
+                                freq = freq + " MHz";
+                            }
+                        }
+                        titulo  = "Radio FM";
+                        artista = freq != null ? freq : "";
+                        break;
+                    }
+                    case TS_MEDIA_META: {
+                        titulo  = primerNoVacio(
+                                intent.getStringExtra("title"),
+                                intent.getStringExtra("name"));
+                        artista = intent.getStringExtra("artist");
+                        album   = intent.getStringExtra("album");
+                        break;
+                    }
                     default:
                         return;
                 }
@@ -138,6 +193,13 @@ public class ServicioNotificaciones extends NotificationListenerService {
         filtro.addAction(AVRCP_TRACK_EVENT);
         filtro.addAction(MUSIC_META_CHANGED);
         filtro.addAction(MUSIC_PLAY_STATUS);
+        filtro.addAction(HICAR_META_CHANGED);
+        filtro.addAction(MTK_AVRCP_META);
+        filtro.addAction(AVRCP2_TRACK_EVENT);
+        filtro.addAction(AVRCP_META_CHANGED);
+        filtro.addAction(TS_RADIO_INFO);
+        filtro.addAction(TS_RADIO_FREQ);
+        filtro.addAction(TS_MEDIA_META);
         try {
             registerReceiver(receptorAvrcp, filtro);
         } catch (Exception ignored) {}

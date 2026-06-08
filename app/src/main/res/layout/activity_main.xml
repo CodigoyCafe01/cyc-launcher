@@ -127,6 +127,26 @@
                 android:layout_weight="1" />
 
             <LinearLayout
+                android:id="@+id/btn_color_fondo"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/shortcut_bg"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_palette" />
+
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/btn_donacion"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
@@ -144,14 +164,6 @@
                     android:layout_height="18dp"
                     android:src="@drawable/ic_donate" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Apoyar"
-                    android:textColor="#FF5252"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:layout_marginStart="6dp" />
             </LinearLayout>
 
 
@@ -336,14 +348,6 @@
                             android:layout_marginTop="3dp" />
                     </LinearLayout>
                 </LinearLayout>
-
-                <!-- Separador -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1E2140"
-                    android:layout_marginTop="10dp"
-                    android:layout_marginBottom="4dp" />
 
                 <!-- Tiempo + barra de progreso -->
                 <LinearLayout

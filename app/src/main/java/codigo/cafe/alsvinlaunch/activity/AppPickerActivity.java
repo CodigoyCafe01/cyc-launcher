@@ -46,9 +46,7 @@ public class AppPickerActivity extends Activity {
         btnToggle = (TextView) findViewById(R.id.btn_toggle_sistema);
         tvCargando = (TextView) findViewById(R.id.tv_cargando);
 
-        appsNormales = loadAppsNormales();
-        appList = appsNormales;
-
+        appList = new ArrayList<>();
         adapter = new PickerAdapter();
         grid.setAdapter(adapter);
         grid.setOnItemClickListener((parent, view, position, id) -> {
@@ -67,9 +65,26 @@ public class AppPickerActivity extends Activity {
         });
 
         btnToggle.setOnClickListener(v -> toggleModo());
+
+        // Cargar apps en background para no bloquear el hilo principal
+        tvCargando.setVisibility(View.VISIBLE);
+        grid.setVisibility(View.INVISIBLE);
+        btnToggle.setEnabled(false);
+        new Thread(() -> {
+            appsNormales = loadAppsNormales();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                appList = appsNormales;
+                adapter.notifyDataSetChanged();
+                tvCargando.setVisibility(View.GONE);
+                grid.setVisibility(View.VISIBLE);
+                btnToggle.setEnabled(true);
+            });
+        }, "load-apps").start();
     }
 
     private void toggleModo() {
+        if (appsNormales == null) return; // todavía cargando
         if (!mostrandoSistema) {
             mostrandoSistema = true;
             btnToggle.setText("Normal");

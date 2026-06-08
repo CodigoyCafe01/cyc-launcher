@@ -85,42 +85,23 @@ public class MediaWidgetManager {
         }
     };
 
-    private boolean btFallbackActivo = false;
+    // Caché de permiso de notificaciones: evita queries a ContentResolver en cada tick
+    private boolean cachePerm = false;
+    private long cachePermTs = 0L;
+    private static final long CACHE_PERM_TTL_MS = 5_000L;
+
+    // Caché nombre legible de paquetes ya consultados
+    private final java.util.Map<String, String> cachePaquetes = new java.util.HashMap<>();
 
     private final Handler handlerSondeo = new Handler(Looper.getMainLooper());
     private final Runnable runnableSondeo = new Runnable() {
         @Override
         public void run() {
             if (destruido) return;
-
-            // 1. Intentar adjuntar MediaSession estándar (apps con MediaSession)
             if (controladorActual == null && tienePermisoNotificaciones()) {
                 actualizar();
             }
-
-            // 2. Si sigue sin sesión (BT/Radio propietario sin MediaSession),
-            //    detectar audio activo por AudioManager como fallback.
-            if (controladorActual == null && !destruido) {
-                AudioManager am = (AudioManager)
-                        actividad.getSystemService(Context.AUDIO_SERVICE);
-                boolean audioActivo = am != null && am.isMusicActive();
-
-                if (audioActivo) {
-                    if (!btFallbackActivo) {
-                        btFallbackActivo = true;
-                        estaReproduciendo = true;
-                        mostrarWidget("Bluetooth", null);
-                    }
-                } else {
-                    if (btFallbackActivo) {
-                        btFallbackActivo = false;
-                        estaReproduciendo = false;
-                        widgetReproductor.setVisibility(View.GONE);
-                        if (colorListener != null) colorListener.onSinColor();
-                    }
-                }
-
-                // Reprogramar sondeo mientras no haya MediaSession
+            if (!destruido && controladorActual == null) {
                 handlerSondeo.removeCallbacks(this);
                 handlerSondeo.postDelayed(this, INTERVALO_SONDEO_MS);
             }
@@ -190,31 +171,61 @@ public class MediaWidgetManager {
         }
     }
 
+    private boolean esAppRadioBT(String paquete) {
+        if (paquete == null) return false;
+        String p = paquete.toLowerCase(Locale.US);
+        return p.contains("bluetooth") || p.contains("radio")
+                || p.equals("com.ts.main") || p.contains("ts.main")
+                || p.contains("dvdplayer") || p.contains("ts.dvd")
+                || p.contains("avin") || p.contains("aux");
+    }
+
     private MediaController elegirMejorControlador(List<MediaController> controladores) {
         if (controladores == null || controladores.isEmpty()) return null;
         MediaController reproduciendo = null;
+        MediaController enBuffer = null;
         MediaController conMetadata = null;
         for (MediaController c : controladores) {
             if (c == null) continue;
+            if (esAppRadioBT(c.getPackageName())) continue;
             PlaybackState s = c.getPlaybackState();
             if (s != null && s.getState() == PlaybackState.STATE_PLAYING) {
                 reproduciendo = c;
                 break;
+            }
+            if (enBuffer == null && s != null &&
+                    (s.getState() == PlaybackState.STATE_BUFFERING ||
+                     s.getState() == PlaybackState.STATE_CONNECTING)) {
+                enBuffer = c;
             }
             if (conMetadata == null && c.getMetadata() != null) {
                 conMetadata = c;
             }
         }
         if (reproduciendo != null) return reproduciendo;
+        if (enBuffer != null) return enBuffer;
         if (conMetadata != null) return conMetadata;
-        return controladores.get(0);
+        return null;
     }
 
     private String nombreAmigablePaquete(String paquete) {
         if (paquete == null) return "Reproduciendo";
+        String cached = cachePaquetes.get(paquete);
+        if (cached != null) return cached;
+        String result = resolverNombrePaquete(paquete);
+        cachePaquetes.put(paquete, result);
+        return result;
+    }
+
+    private String resolverNombrePaquete(String paquete) {
         String p = paquete.toLowerCase(Locale.US);
         if (p.contains("bluetooth")) return "Bluetooth";
-        if (p.contains("radio")) return "Radio";
+        if (p.contains("radio"))     return "Radio FM";
+        if (p.equals("com.ts.main"))            return "Radio FM";
+        if (p.equals("com.ts.dvdplayer"))       return "Media";
+        if (p.equals("com.android.sdvdplayer")) return "Media";
+        if (p.contains("dvdplayer"))            return "Media";
+        if (p.contains("ts.main"))              return "Radio FM";
         try {
             android.content.pm.PackageManager pm = actividad.getPackageManager();
             android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(paquete, 0);
@@ -334,7 +345,13 @@ public class MediaWidgetManager {
                 if (elegido != null) {
                     adjuntarControlador(elegido);
                 } else {
-                    limpiarControlador();
+                    // Delay antes de limpiar: apps como YT Music destruyen y recrean
+                    // su sesión al cambiar de canción; un clear inmediato esconde el widget.
+                    handlerSondeo.postDelayed(() -> {
+                        if (destruido || controladorActual != null) return;
+                        actualizar();
+                        if (controladorActual == null) limpiarControlador();
+                    }, 1500);
                 }
             });
         };
@@ -349,11 +366,14 @@ public class MediaWidgetManager {
         receptorMedia = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                String titulo = intent.getStringExtra("titulo");
-                String artista = intent.getStringExtra("artista");
-                boolean reproduciendo = intent.getBooleanExtra("reproduciendo", false);
+                boolean esAvrcp = intent.getBooleanExtra(
+                        ServicioNotificaciones.EXTRA_FUENTE_AVRCP, false);
+                if (esAvrcp) return; // Ignorar eventos de Bluetooth/AVRCP
 
-                estaReproduciendo = reproduciendo;
+                String paquete = intent.getStringExtra("paquete");
+                if (paquete != null && esAppRadioBT(paquete)) return; // Ignorar Radio
+
+                estaReproduciendo = intent.getBooleanExtra("reproduciendo", false);
                 if (controladorActual == null && tienePermisoNotificaciones()) {
                     try {
                         ComponentName cn = new ComponentName(actividad, ServicioNotificaciones.class);
@@ -361,23 +381,6 @@ public class MediaWidgetManager {
                         MediaController elegido = elegirMejorControlador(cs);
                         if (elegido != null) adjuntarControlador(elegido);
                     } catch (Exception ignored) {
-                    }
-                }
-                if (titulo != null && !titulo.isEmpty()) {
-                    mostrarWidget(titulo, artista);
-                } else if (controladorActual != null) {
-                    // Bluetooth/Radio: sin metadata pero hay sesión activa
-                    String paquete = intent.getStringExtra("paquete");
-                    if (paquete == null) paquete = controladorActual.getPackageName();
-                    mostrarWidget(nombreAmigablePaquete(paquete), artista);
-                } else {
-                    // ServicioNotificaciones encontró una sesión (envió "paquete") aunque
-                    // no pudimos adjuntarla localmente; mostrar widget de todas formas.
-                    String paquete = intent.getStringExtra("paquete");
-                    if (paquete != null && !paquete.isEmpty()) {
-                        mostrarWidget(nombreAmigablePaquete(paquete), artista);
-                    } else {
-                        limpiarControlador();
                     }
                 }
             }
@@ -399,12 +402,17 @@ public class MediaWidgetManager {
         }
         desconectarCallback();
         controladorActual = nuevo;
-        btFallbackActivo = false;
         handlerSondeo.removeCallbacks(runnableSondeo);
 
         callbackControlador = new MediaController.Callback() {
             @Override
             public void onMetadataChanged(MediaMetadata metadata) {
+                actividad.runOnUiThread(() -> refrescarDesdeControlador());
+            }
+
+            // Queue llega asíncronamente en sesiones AVRCP BT
+            @Override
+            public void onQueueChanged(List<android.media.session.MediaSession.QueueItem> queue) {
                 actividad.runOnUiThread(() -> refrescarDesdeControlador());
             }
 
@@ -440,47 +448,94 @@ public class MediaWidgetManager {
         callbackControlador = null;
     }
 
+    /**
+     * Extrae título y artista de un MediaController usando TODAS las fuentes disponibles:
+     * 1. MediaMetadata estándar (TITLE, DISPLAY_TITLE)
+     * 2. Queue del reproductor (primer ítem)
+     * 3. Extras del bundle de estado
+     * Devuelve String[2] = {titulo, artista}, nunca null.
+     */
+    private String[] extraerTituloArtista(MediaController ctrl) {
+        String titulo  = null;
+        String artista = null;
+
+        // ── Fuente 1: MediaMetadata ────────────────────────────────────────────
+        MediaMetadata meta = ctrl.getMetadata();
+        if (meta != null) {
+            titulo  = primerNoVacioMeta(meta,
+                    MediaMetadata.METADATA_KEY_TITLE,
+                    MediaMetadata.METADATA_KEY_DISPLAY_TITLE,
+                    MediaMetadata.METADATA_KEY_MEDIA_ID);
+            artista = primerNoVacioMeta(meta,
+                    MediaMetadata.METADATA_KEY_ARTIST,
+                    MediaMetadata.METADATA_KEY_ALBUM_ARTIST,
+                    MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE,
+                    MediaMetadata.METADATA_KEY_COMPOSER);
+        }
+
+        // ── Fuente 2: Queue (primer ítem — común en AVRCP Controller de Android) ─
+        if (titulo == null || titulo.isEmpty()) {
+            try {
+                List<android.media.session.MediaSession.QueueItem> queue = ctrl.getQueue();
+                if (queue != null && !queue.isEmpty()) {
+                    android.media.MediaDescription desc = queue.get(0).getDescription();
+                    if (desc != null) {
+                        if (desc.getTitle() != null) titulo  = desc.getTitle().toString();
+                        if (desc.getSubtitle() != null) artista = desc.getSubtitle().toString();
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return new String[]{titulo != null ? titulo : "", artista != null ? artista : ""};
+    }
+
+    private String primerNoVacioMeta(MediaMetadata meta, String... claves) {
+        for (String clave : claves) {
+            String val = meta.getString(clave);
+            if (val != null && !val.isEmpty()) return val;
+        }
+        return null;
+    }
+
     private void refrescarDesdeControlador() {
         if (controladorActual == null) {
             limpiarControlador();
             return;
         }
 
-        MediaMetadata metadata = controladorActual.getMetadata();
         PlaybackState estado = controladorActual.getPlaybackState();
-
         estaReproduciendo = estado != null &&
                 estado.getState() == PlaybackState.STATE_PLAYING;
 
-        String titulo = null;
-        String artista = null;
+        // ── Extraer título/artista de todas las fuentes disponibles ────────────
+        String[] taResult = extraerTituloArtista(controladorActual);
+        String titulo  = taResult[0];
+        String artista = taResult[1];
+
+        // ── Duración y portada desde MediaMetadata ────────────────────────────
+        MediaMetadata metadata = controladorActual.getMetadata();
         Bitmap bitmap = null;
         duracionMs = 0L;
-
         if (metadata != null) {
-            titulo = metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
-            artista = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
             duracionMs = Math.max(0L, metadata.getLong(MediaMetadata.METADATA_KEY_DURATION));
             bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
-            if (bitmap == null) {
-                bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
-            }
+            if (bitmap == null) bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
         }
 
-        // Bluetooth/Radio suelen llegar sin título; mostramos un fallback siempre
-        // que haya una sesión con estado "vivo" (no detenida del todo).
-        if (titulo == null || titulo.isEmpty()) {
+        // ── Sin título: resolver ───────────────────────────────────────────────
+        if (titulo.isEmpty()) {
             boolean estadoUtil = estado != null && (
                     estado.getState() == PlaybackState.STATE_PLAYING ||
-                    estado.getState() == PlaybackState.STATE_PAUSED ||
+                    estado.getState() == PlaybackState.STATE_PAUSED  ||
                     estado.getState() == PlaybackState.STATE_BUFFERING ||
                     estado.getState() == PlaybackState.STATE_CONNECTING);
-            if (estadoUtil || metadata != null) {
-                titulo = nombreAmigablePaquete(controladorActual.getPackageName());
-            } else {
+
+            if (!estadoUtil && metadata == null) {
                 limpiarControlador();
                 return;
             }
+            titulo = nombreAmigablePaquete(controladorActual.getPackageName());
         }
 
         reproductorTiempoTotal.setText(formatearTiempo(duracionMs));
@@ -503,7 +558,6 @@ public class MediaWidgetManager {
         desconectarCallback();
         handlerProgreso.removeCallbacks(runnableProgreso);
         controladorActual = null;
-        btFallbackActivo = false;
         estaReproduciendo = false;
         duracionMs = 0L;
         puedeBuscar = false;
@@ -666,8 +720,12 @@ public class MediaWidgetManager {
     // ──────────────────────────────────────────────
 
     private boolean tienePermisoNotificaciones() {
+        long ahora = android.os.SystemClock.elapsedRealtime();
+        if (ahora - cachePermTs < CACHE_PERM_TTL_MS) return cachePerm;
         String activos = android.provider.Settings.Secure.getString(
                 actividad.getContentResolver(), "enabled_notification_listeners");
-        return activos != null && activos.contains(actividad.getPackageName());
+        cachePerm = activos != null && activos.contains(actividad.getPackageName());
+        cachePermTs = ahora;
+        return cachePerm;
     }
 }

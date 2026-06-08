@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="48dp"
-        android:text="Toca para desbloquear"
+        android:text="Doble toque para desbloquear"
         android:textColor="#55FFFFFF"
         android:textSize="13sp" />
 

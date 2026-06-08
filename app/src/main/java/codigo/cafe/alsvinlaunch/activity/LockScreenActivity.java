@@ -2,37 +2,23 @@ package codigo.cafe.alsvinlaunch.activity;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-
 import codigo.cafe.alsvinlaunch.R;
+import codigo.cafe.alsvinlaunch.managers.ClockManager;
 
 public class LockScreenActivity extends Activity {
 
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private TextView clockText;
-    private TextView dateText;
-
-    private final Runnable tickRunnable = new Runnable() {
-        @Override
-        public void run() {
-            actualizarReloj();
-            handler.postDelayed(this, 1000);
-        }
-    };
+    private ClockManager clockManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Pantalla encendida, sobre la lock-screen del sistema
         getWindow().addFlags(
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
                         WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
@@ -41,29 +27,33 @@ public class LockScreenActivity extends Activity {
 
         setContentView(R.layout.activity_lock_screen);
 
-        clockText = findViewById(R.id.lock_clock);
-        dateText  = findViewById(R.id.lock_date);
+        TextView clockText = findViewById(R.id.lock_clock);
+        TextView dateText  = findViewById(R.id.lock_date);
 
-        // Toca en cualquier lugar → cierra y vuelve al launcher
-        findViewById(R.id.lock_root).setOnClickListener(v -> finish());
+        clockManager = new ClockManager(this, clockText, dateText);
+
+        GestureDetector gestureDetector = new GestureDetector(this,
+                new GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onDoubleTap(MotionEvent e) {
+                        finish();
+                        return true;
+                    }
+                });
+
+        View root = findViewById(R.id.lock_root);
+        root.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        actualizarReloj();
-        handler.post(tickRunnable);
+        clockManager.iniciar();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        handler.removeCallbacks(tickRunnable);
-    }
-
-    private void actualizarReloj() {
-        Date now = new Date();
-        clockText.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(now));
-        dateText.setText(new SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()).format(now));
+        clockManager.detener();
     }
 }

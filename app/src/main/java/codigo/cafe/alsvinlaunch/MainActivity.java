@@ -6,20 +6,22 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,19 +52,11 @@ public class MainActivity extends Activity {
 
     private static final String NOMBRE_PREFS = "alsvin_launcher_prefs";
     private static final String PREF_COLOR_DINAMICO = "color_dinamico";
+    private static final String PREF_COLOR_FONDO = "color_fondo_personalizado";
     private static final int COLOR_BASE_FONDO = 0xFF1A1A2E;
 
     // Código de solicitud para el permiso de ubicación
     private static final int SOLICITUD_PERMISO_GPS = 200;
-
-    // Hora mínima válida — antes de esto consideramos que el RTC no se sincronizó.
-    // Evita la cascada que congela la app cuando el reloj salta de 2006 a la hora real.
-    private static final long TIEMPO_MINIMO_VALIDO = 1_767_225_600_000L; // 2026-01-01 UTC
-    private static final long TIMEOUT_ESPERA_HORA_MS = 30_000L;
-    private static final long DELAY_RECREATE_TRAS_TIMECHANGE_MS = 3_000L;
-
-    // Sobrevive a recreate(). Si se activa por timeout, no reentramos en modo espera.
-    private static boolean omitirEsperaHora = false;
 
     // ── Managers ──
     private ClockManager clockManager;
@@ -83,14 +77,14 @@ public class MainActivity extends Activity {
     private boolean modoColorDinamico = false;
     private int colorActualFondo = COLOR_BASE_FONDO;
     private boolean primerResume = true;
-    private boolean pantallaBloqueada = false;
-    private boolean modoEsperaHora = false;
     // Se pone a true al final de inicializarManagersCompletos(). Los métodos
     // del ciclo de vida (onStart/onResume/...) que corren ANTES de que el
     // Runnable diferido se ejecute deben hacer no-op mientras esto sea false.
     private boolean managersListos = false;
-    private BroadcastReceiver receptorEsperaHora;
-    private final Handler handlerEspera = new Handler(Looper.getMainLooper());
+    // Resultado de AppPicker que llegó antes de que los managers estuvieran listos
+    private int pendingResultRequestCode = -1;
+    private int pendingResultResultCode  = -1;
+    private Intent pendingResultData     = null;
 
     // ── Vistas directas ──
     private TextView textoReloj;
@@ -124,17 +118,7 @@ public class MainActivity extends Activity {
         botonBloqueo = findViewById(R.id.btn_theme_toggle);
         topBar = findViewById(R.id.top_bar);
 
-        // ── Reloj siempre activo, incluso con fecha incorrecta ──
         clockManager = new ClockManager(this, textoReloj, textoFecha);
-
-        // Si el RTC no tiene batería, el headunit arranca en 2006 y NTP
-        // luego salta ~20 años. Esa cascada (alarmas atrasadas, re-sync
-        // de MediaSessionManager, re-validación SSL…) congela la Activity.
-        // Posponemos el init pesado hasta que la hora sea válida.
-        if (!omitirEsperaHora && !tiempoValido()) {
-            iniciarModoEsperaHora();
-            return;
-        }
 
         // Diferimos la inicialización pesada hasta DESPUÉS del primer frame:
         // así el launcher aparece de inmediato y la creación de managers,
@@ -162,46 +146,6 @@ public class MainActivity extends Activity {
     }
 
     // ══════════════════════════════════════
-    //  MODO ESPERA POR HORA INVÁLIDA
-    // ══════════════════════════════════════
-
-    private boolean tiempoValido() {
-        return System.currentTimeMillis() >= TIEMPO_MINIMO_VALIDO;
-    }
-
-    private void iniciarModoEsperaHora() {
-        modoEsperaHora = true;
-
-        receptorEsperaHora = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (tiempoValido()) procesarTimeChangeValido();
-            }
-        };
-        IntentFilter filtro = new IntentFilter();
-        filtro.addAction(Intent.ACTION_TIME_CHANGED);
-        filtro.addAction(Intent.ACTION_DATE_CHANGED);
-        registerReceiver(receptorEsperaHora, filtro);
-
-        // Fallback: si NTP nunca llega (sin internet), tras 30 s
-        // inicializamos igual para que el launcher sea funcional.
-        handlerEspera.postDelayed(() -> {
-            if (!modoEsperaHora) return;
-            omitirEsperaHora = true;
-            if (!isFinishing() && !isDestroyed()) recreate();
-        }, TIMEOUT_ESPERA_HORA_MS);
-    }
-
-    private void procesarTimeChangeValido() {
-        // Damos unos segundos al sistema para que termine la cascada
-        // de eventos antes de recrear con un estado limpio.
-        handlerEspera.removeCallbacksAndMessages(null);
-        handlerEspera.postDelayed(() -> {
-            if (!isFinishing() && !isDestroyed()) recreate();
-        }, DELAY_RECREATE_TRAS_TIMECHANGE_MS);
-    }
-
-    // ══════════════════════════════════════
     //  INICIALIZACIÓN COMPLETA
     // ══════════════════════════════════════
 
@@ -212,13 +156,48 @@ public class MainActivity extends Activity {
         kioskManager = new KioskManager(this, prefs);
         speedManager = new SpeedManager(this);
 
-        // Click en el widget de marcha → diálogo para configurar rangos
+        // Gear widget: oculto por defecto.
+        // Doble tap en velocímetro → mostrar. Doble tap en marcha → ocultar.
+        // Tap simple en marcha → diálogo de rangos.
         View gearWidget = findViewById(R.id.gear_widget);
         if (gearWidget != null) {
-            gearWidget.setOnClickListener(v ->
-                    codigo.cafe.alsvinlaunch.managers.GearRangesDialog.mostrar(
-                            this,
-                            () -> speedManager.recargarCortes()));
+            gearWidget.setVisibility(View.GONE);
+
+            GestureDetector gearDetector = new GestureDetector(this,
+                    new GestureDetector.SimpleOnGestureListener() {
+                        @Override
+                        public boolean onSingleTapConfirmed(MotionEvent e) {
+                            codigo.cafe.alsvinlaunch.managers.GearRangesDialog.mostrar(
+                                    MainActivity.this,
+                                    () -> speedManager.recargarCortes());
+                            return true;
+                        }
+                        @Override
+                        public boolean onDoubleTap(MotionEvent e) {
+                            gearWidget.setVisibility(View.GONE);
+                            return true;
+                        }
+                    });
+            gearWidget.setOnTouchListener((v, event) -> {
+                gearDetector.onTouchEvent(event);
+                return true;
+            });
+
+            View speedometerView = findViewById(R.id.speedometer_view);
+            if (speedometerView != null) {
+                GestureDetector speedDetector = new GestureDetector(this,
+                        new GestureDetector.SimpleOnGestureListener() {
+                            @Override
+                            public boolean onDoubleTap(MotionEvent e) {
+                                gearWidget.setVisibility(View.VISIBLE);
+                                return true;
+                            }
+                        });
+                speedometerView.setOnTouchListener((v, event) -> {
+                    speedDetector.onTouchEvent(event);
+                    return true;
+                });
+            }
         }
 
         permissionsManager = new PermissionsManager(this);
@@ -294,6 +273,7 @@ public class MainActivity extends Activity {
         configurarBotonSistema();
         configurarIndicadoresEstado();
         configurarReproductor();
+        configurarBotonColorFondo();
 
         // ── Carga inicial de datos ──
         shortcutManager.cargar();
@@ -308,11 +288,26 @@ public class MainActivity extends Activity {
         // Los managers ya están listos: disparar lo que onStart / onResume
         // intentaron ejecutar antes (saltaron porque managersListos == false).
         managersListos = true;
+
+        // Procesar resultado de AppPicker que llegó antes de que los managers estuvieran listos
+        if (pendingResultRequestCode != -1) {
+            onActivityResult(pendingResultRequestCode, pendingResultResultCode, pendingResultData);
+            pendingResultRequestCode = -1;
+            pendingResultData = null;
+        }
+
         mediaWidgetManager.iniciar();
         statusIndicatorManager.iniciar();
         speedManager.iniciar();
         mediaWidgetManager.actualizar();
         statusIndicatorManager.actualizar();
+
+        // Restaurar color de fondo guardado
+        int colorGuardado = prefs.getInt(PREF_COLOR_FONDO, COLOR_BASE_FONDO);
+        if (colorGuardado != COLOR_BASE_FONDO) {
+            colorActualFondo = colorGuardado;
+            findViewById(R.id.root_layout).setBackgroundColor(colorGuardado);
+        }
 
         // Discovery tour — se muestra solo la primera vez que el usuario instala la app
         FrameLayout rootLayout = findViewById(R.id.root_layout);
@@ -327,7 +322,6 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         clockManager.iniciar();
-        if (modoEsperaHora) return;
         if (!managersListos) return; // se dispararán al final de inicializarManagersCompletos()
 
         mediaWidgetManager.iniciar();
@@ -339,7 +333,6 @@ public class MainActivity extends Activity {
     protected void onStop() {
         super.onStop();
         clockManager.detener();
-        if (modoEsperaHora) return;
         if (!managersListos) return;
 
         mediaWidgetManager.detener();
@@ -355,7 +348,6 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         clockManager.actualizar();
-        if (modoEsperaHora) return;
         if (!managersListos) return; // se reanudará al final de inicializarManagersCompletos()
 
         abriendoApp = false;
@@ -369,7 +361,7 @@ public class MainActivity extends Activity {
             primerResume = false;
         }
 
-        if (modoColorDinamico && colorActualFondo != COLOR_BASE_FONDO) {
+        if (colorActualFondo != COLOR_BASE_FONDO) {
             findViewById(R.id.root_layout).setBackgroundColor(colorActualFondo);
         }
 
@@ -400,7 +392,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (modoEsperaHora) return;
         if (!managersListos) return;
 
         systemPanelManager.ocultar();
@@ -420,19 +411,7 @@ public class MainActivity extends Activity {
 
         if (clockManager != null) clockManager.detener();
 
-        // Limpieza del modo espera (tanto si seguimos en él como si ya salimos)
-        handlerEspera.removeCallbacksAndMessages(null);
-        if (receptorEsperaHora != null) {
-            try {
-                unregisterReceiver(receptorEsperaHora);
-            } catch (IllegalArgumentException ignored) {
-            }
-            receptorEsperaHora = null;
-        }
-
-        if (modoEsperaHora || !managersListos) {
-            // Si la Activity se destruye antes de completar la init diferida,
-            // no hay nada que liberar más allá de las vistas.
+        if (!managersListos) {
             textoReloj = null;
             textoFecha = null;
             botonBloqueo = null;
@@ -459,7 +438,6 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (modoEsperaHora) return;
         if (!managersListos) return;
         if (systemPanelManager.isVisible()) {
             systemPanelManager.ocultar();
@@ -593,6 +571,193 @@ public class MainActivity extends Activity {
     }
 
     // ══════════════════════════════════════
+    //  SELECTOR DE COLOR DE FONDO
+    // ══════════════════════════════════════
+
+    private void configurarBotonColorFondo() {
+        View btn = findViewById(R.id.btn_color_fondo);
+        if (btn == null) return;
+        btn.setOnClickListener(v -> mostrarPaletaColores());
+    }
+
+    private void mostrarPaletaColores() {
+        final int[] colores = {
+            0xFF1A1A2E, 0xFF0D0D1A, 0xFF16213E, 0xFF1B2838, 0xFF0F2027,
+            0xFF1A2A1A, 0xFF2A1A1A, 0xFF1A1A1A, 0xFF0A0A0A, 0xFF000000,
+            0xFF1F3A5F, 0xFF2D4739, 0xFF4A1942, 0xFF3B2314, 0xFF1C3A4A,
+            0xFF2E4057, 0xFF3D5A80, 0xFF2D6A4F, 0xFF6B2737, 0xFF4A3728,
+            0xFF102542, 0xFF1B4332, 0xFF3C096C, 0xFF7B2D00, 0xFF003049,
+        };
+
+        android.content.Context ctx = this;
+        float dp = getResources().getDisplayMetrics().density;
+        int pad    = (int)(16 * dp);
+        int margin = (int)(5  * dp);
+        int stroke = (int)(3  * dp);
+        int cols   = 5;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+        builder.setTitle("Color de fondo");
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+        LinearLayout container = new LinearLayout(ctx);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(pad, pad, pad, pad);
+
+        // ── Chips de colores ──
+        // Guardamos los drawables para actualizar el resaltado dinámicamente
+        GradientDrawable[] chipDrawables = new GradientDrawable[colores.length];
+        // rgb[] y previewBgRef se declaran aquí para que los lambdas de los chips puedan usarlos
+        final int[] rgb = {Color.red(colorActualFondo), Color.green(colorActualFondo), Color.blue(colorActualFondo)};
+        final GradientDrawable[] previewBgRef = {null};
+
+        // Creamos filas de 5 chips con tamaño fijo centradas
+        int chipSize = (int)(44 * dp);
+        int rows = (int) Math.ceil(colores.length / (double) cols);
+        int idx = 0;
+        for (int r = 0; r < rows; r++) {
+            LinearLayout fila = new LinearLayout(ctx);
+            fila.setOrientation(LinearLayout.HORIZONTAL);
+            fila.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+            LinearLayout.LayoutParams filaLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            filaLp.bottomMargin = margin;
+            fila.setLayoutParams(filaLp);
+
+            for (int c = 0; c < cols; c++) {
+                if (idx >= colores.length) break;
+
+                View chip = new View(ctx);
+                LinearLayout.LayoutParams chipLp = new LinearLayout.LayoutParams(chipSize, chipSize);
+                chipLp.setMargins(margin, 0, margin, 0);
+                chip.setLayoutParams(chipLp);
+
+                GradientDrawable bg = new GradientDrawable();
+                bg.setShape(GradientDrawable.OVAL);
+                bg.setColor(colores[idx]);
+                if (colores[idx] == colorActualFondo) {
+                    bg.setStroke(stroke, 0xFFFFFFFF);
+                }
+                chip.setBackground(bg);
+                chipDrawables[idx] = bg;
+
+                final int colorElegido = colores[idx];
+                final int chipIdx = idx;
+                chip.setOnClickListener(cv -> {
+                    // Quitar resaltado de todos
+                    for (GradientDrawable d : chipDrawables) {
+                        if (d != null) d.setStroke(0, Color.TRANSPARENT);
+                    }
+                    // Resaltar el elegido
+                    chipDrawables[chipIdx].setStroke(stroke, 0xFFFFFFFF);
+                    // Actualizar rgb[] y preview para que "Aplicar" use este color
+                    rgb[0] = Color.red(colorElegido);
+                    rgb[1] = Color.green(colorElegido);
+                    rgb[2] = Color.blue(colorElegido);
+                    if (previewBgRef[0] != null) previewBgRef[0].setColor(colorElegido);
+                });
+                fila.addView(chip);
+                idx++;
+            }
+            container.addView(fila);
+        }
+
+        // ── Sliders RGB personalizados ──
+        TextView labelPersonalizado = new TextView(ctx);
+        labelPersonalizado.setText("Personalizado (RGB)");
+        labelPersonalizado.setTextColor(0xFFB0B0B0);
+        labelPersonalizado.setTextSize(12);
+        LinearLayout.LayoutParams tvLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        tvLp.topMargin = (int)(12 * dp);
+        tvLp.bottomMargin = (int)(8 * dp);
+        labelPersonalizado.setLayoutParams(tvLp);
+        container.addView(labelPersonalizado);
+
+        // Preview
+        View preview = new View(ctx);
+        LinearLayout.LayoutParams pvLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (int)(40 * dp));
+        pvLp.bottomMargin = (int)(8 * dp);
+        preview.setLayoutParams(pvLp);
+        GradientDrawable previewBg = new GradientDrawable();
+        previewBg.setShape(GradientDrawable.RECTANGLE);
+        previewBg.setCornerRadius(8 * dp);
+        previewBg.setColor(colorActualFondo);
+        preview.setBackground(previewBg);
+        previewBgRef[0] = previewBg;
+        container.addView(preview);
+
+        String[] etiquetas = {"R", "G", "B"};
+        int[] initVals = {rgb[0], rgb[1], rgb[2]};
+
+        for (int i = 0; i < 3; i++) {
+            LinearLayout row = new LinearLayout(ctx);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            rowLp.bottomMargin = margin;
+            row.setLayoutParams(rowLp);
+
+            TextView label = new TextView(ctx);
+            label.setText(etiquetas[i]);
+            label.setTextColor(0xFFFFFFFF);
+            label.setTextSize(13);
+            label.setMinWidth((int)(20 * dp));
+            row.addView(label);
+
+            SeekBar sb = new SeekBar(ctx);
+            sb.setMax(255);
+            sb.setProgress(initVals[i]);
+            LinearLayout.LayoutParams sbLp = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            sbLp.setMarginStart(margin);
+            sb.setLayoutParams(sbLp);
+
+            final int canal = i;
+            sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar s, int progress, boolean fromUser) {
+                    if (!fromUser) return;
+                    rgb[canal] = progress;
+                    // Quitar resaltado de chips de preset
+                    for (GradientDrawable d : chipDrawables) {
+                        if (d != null) d.setStroke(0, Color.TRANSPARENT);
+                    }
+                    previewBg.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
+                }
+                @Override public void onStartTrackingTouch(SeekBar s) {}
+                @Override public void onStopTrackingTouch(SeekBar s) {}
+            });
+            row.addView(sb);
+            container.addView(row);
+        }
+
+        scroll.addView(container);
+        builder.setView(scroll);
+
+        builder.setPositiveButton("Aplicar", (dialog, which) ->
+                aplicarColorFondo(Color.rgb(rgb[0], rgb[1], rgb[2])));
+        builder.setNeutralButton("Restablecer", (dialog, which) ->
+                aplicarColorFondo(COLOR_BASE_FONDO));
+        builder.setNegativeButton("Cancelar", null);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.dialogo_bg);
+        }
+        dialog.show();
+    }
+
+    private void aplicarColorFondo(int color) {
+        prefs.edit().putInt(PREF_COLOR_FONDO, color).apply();
+        animarColorFondo(color);
+    }
+
+    // ══════════════════════════════════════
     //  COLOR DINÁMICO
     // ══════════════════════════════════════
 
@@ -713,7 +878,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (!managersListos) return;
+        if (!managersListos) {
+            // Los managers aún no están listos (actividad recreada con .post()).
+            // Guardamos el resultado para procesarlo al final de inicializarManagersCompletos().
+            pendingResultRequestCode = requestCode;
+            pendingResultResultCode  = resultCode;
+            pendingResultData        = data;
+            return;
+        }
 
         if (requestCode == ShortcutManager.SOLICITUD_ELEGIR_APP) {
             shortcutManager.procesarResultado(requestCode, resultCode, data);
