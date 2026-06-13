@@ -753,7 +753,16 @@ public class MainActivity extends Activity {
     }
 
     private void aplicarColorFondo(int color) {
-        prefs.edit().putInt(PREF_COLOR_FONDO, color).apply();
+        // Desactivar modo dinámico para que no sobreescriba la elección manual
+        if (modoColorDinamico) {
+            modoColorDinamico = false;
+            prefs.edit()
+                    .putBoolean(PREF_COLOR_DINAMICO, false)
+                    .putInt(PREF_COLOR_FONDO, color)
+                    .apply();
+        } else {
+            prefs.edit().putInt(PREF_COLOR_FONDO, color).apply();
+        }
         animarColorFondo(color);
     }
 
@@ -764,18 +773,15 @@ public class MainActivity extends Activity {
     private void animarColorFondo(int colorDestino) {
         if (colorActualFondo == colorDestino) return;
 
+        int colorOrigen = colorActualFondo;
+        colorActualFondo = colorDestino; // actualizar de inmediato para evitar race conditions
+
         ValueAnimator animator = ValueAnimator.ofObject(
-                new ArgbEvaluator(), colorActualFondo, colorDestino);
+                new ArgbEvaluator(), colorOrigen, colorDestino);
         animator.setDuration(800);
         animator.addUpdateListener(anim ->
                 findViewById(R.id.root_layout)
                         .setBackgroundColor((int) anim.getAnimatedValue()));
-        animator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(android.animation.Animator animation) {
-                colorActualFondo = colorDestino;
-            }
-        });
         animator.start();
     }
 
