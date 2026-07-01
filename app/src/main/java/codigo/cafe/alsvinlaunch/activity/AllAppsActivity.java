@@ -53,8 +53,8 @@ public class AllAppsActivity extends Activity {
         btnToggle = (TextView) findViewById(R.id.btn_toggle_sistema);
         tvCargando = (TextView) findViewById(R.id.tv_cargando);
 
-        appsNormales = loadAppsNormales();
-        appList = appsNormales;
+        // Empezamos con una lista vacía para que el adapter no falle mientras carga.
+        appList = new ArrayList<>();
 
         adapter = new AppsAdapter();
         grid.setAdapter(adapter);
@@ -72,6 +72,27 @@ public class AllAppsActivity extends Activity {
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         btnToggle.setOnClickListener(v -> toggleModo());
+
+        // La carga de apps hace muchas llamadas al PackageManager (queryIntentActivities,
+        // getLaunchIntentForPackage, loadLabel, loadIcon). Ejecutarla en el hilo principal
+        // bloquea la UI y provoca ANR, así que la movemos a un hilo de fondo.
+        tvCargando.setVisibility(View.VISIBLE);
+        grid.setVisibility(View.INVISIBLE);
+        btnToggle.setEnabled(false);
+        new Thread(() -> {
+            List<AppInfo> cargadas = loadAppsNormales();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                appsNormales = cargadas;
+                tvCargando.setVisibility(View.GONE);
+                grid.setVisibility(View.VISIBLE);
+                btnToggle.setEnabled(true);
+                if (!mostrandoSistema) {
+                    appList = appsNormales;
+                    adapter.notifyDataSetChanged();
+                }
+            });
+        }, "load-normal-apps").start();
     }
 
     private void toggleModo() {
