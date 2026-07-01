@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.net.Uri;
 import android.widget.Toast;
 
+import codigo.cafe.alsvinlaunch.R;
+
 /**
  * BluetoothCallManager
  *
@@ -39,7 +41,7 @@ public class BluetoothCallManager {
     public void llamar(String numero) {
         String num = limpiar(numero);
         if (num.isEmpty()) {
-            mostrar("Número inválido");
+            mostrar(actividad.getString(R.string.msg_numero_invalido));
             return;
         }
 
@@ -59,7 +61,7 @@ public class BluetoothCallManager {
             } catch (Exception ignored) {}
         }
 
-        mostrar("No se pudo conectar con la app BT.\nVerifica que el teléfono esté conectado.");
+        mostrar(actividad.getString(R.string.msg_bt_no_conectar));
     }
 
     // ══════════════════════════════════════

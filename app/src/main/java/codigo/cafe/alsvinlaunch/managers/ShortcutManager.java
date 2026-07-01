@@ -22,7 +22,9 @@ public class ShortcutManager {
 
     public static final int SOLICITUD_ELEGIR_APP = 100;
     private static final int CANTIDAD_ACCESOS = 5;
-    private static final String[] NOMBRES_PREDEFINIDOS = {"Música", "Navegación", "Teléfono", "Radio", "Ajustes"};
+    private static final int[] NOMBRES_PREDEFINIDOS = {
+            R.string.shortcut_musica, R.string.shortcut_navegacion,
+            R.string.shortcut_telefono, R.string.shortcut_radio, R.string.shortcut_config};
 
     private static final int[] IDS_ICONOS = {
             R.id.shortcut_icon_0, R.id.shortcut_icon_1, R.id.shortcut_icon_2,
@@ -109,7 +111,7 @@ public class ShortcutManager {
             if (paquetes[i] != null && clases[i] != null) {
                 // Placeholder hasta que llegue el icono real
                 icono.setImageResource(R.drawable.ic_add_shortcut);
-                etiqueta.setText(nombres[i] != null ? nombres[i] : paquetes[i]);
+                etiqueta.setText(etiquetaParaAcceso(i, paquetes[i], clases[i], nombres[i]));
             } else {
                 establecerVacio(icono, etiqueta, i);
             }
@@ -164,7 +166,7 @@ public class ShortcutManager {
                 actividad.startActivity(intent);
             } catch (Exception e) {
                 notificarFallo();
-                Toast.makeText(actividad, "No se pudo abrir la app", Toast.LENGTH_SHORT).show();
+                Toast.makeText(actividad, actividad.getString(R.string.msg_no_abrir_app), Toast.LENGTH_SHORT).show();
             }
         } else {
             elegirApp(indice);
@@ -210,7 +212,27 @@ public class ShortcutManager {
 
     private void establecerVacio(ImageView icono, TextView etiqueta, int indice) {
         icono.setImageResource(R.drawable.ic_add_shortcut);
-        etiqueta.setText(indice < NOMBRES_PREDEFINIDOS.length ? NOMBRES_PREDEFINIDOS[indice] : "Vacío");
+        etiqueta.setText(indice < NOMBRES_PREDEFINIDOS.length ? NOMBRES_PREDEFINIDOS[indice] : R.string.lbl_vacio);
+    }
+
+    /**
+     * Devuelve la etiqueta a mostrar para un acceso. Si el acceso sigue siendo
+     * uno de los predefinidos sin modificar (mismo paquete/clase/nombre que el
+     * default de fábrica), se usa el nombre traducido según el idioma actual.
+     * Si el usuario le asignó otra app, se conserva su nombre guardado.
+     */
+    private String etiquetaParaAcceso(int indice, String paquete, String clase, String nombreGuardado) {
+        if (indice < ConstantesSistema.ACCESOS_PREDEFINIDOS.length
+                && indice < NOMBRES_PREDEFINIDOS.length) {
+            String[] def = ConstantesSistema.ACCESOS_PREDEFINIDOS[indice];
+            boolean esDefaultSinTocar = def[1].equals(paquete)
+                    && def[2].equals(clase)
+                    && (nombreGuardado == null || nombreGuardado.equals(def[0]));
+            if (esDefaultSinTocar) {
+                return actividad.getString(NOMBRES_PREDEFINIDOS[indice]);
+            }
+        }
+        return nombreGuardado != null ? nombreGuardado : paquete;
     }
 
     private void notificarAbriendo() {

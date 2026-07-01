@@ -13,7 +13,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Configurar marchas"
+            android:text="@string/gear_titulo"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:gravity="center"
@@ -22,7 +22,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Velocidad recomendada (km/h) para subir de marcha"
+            android:text="@string/gear_subtitulo"
             android:textColor="#7A7FA8"
             android:textSize="11sp"
             android:gravity="center"
@@ -32,7 +32,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Tipo de motor"
+            android:text="@string/gear_tipo_motor"
             android:textColor="#B0B0B0"
             android:textSize="12sp"
             android:paddingBottom="8dp" />
@@ -58,7 +58,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="1ª → 2ª"
+                android:text="@string/gear_1_2"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp" />
 
@@ -78,7 +78,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="km/h"
+                android:text="@string/lbl_kmh"
                 android:textColor="#7A7FA8"
                 android:textSize="12sp"
                 android:layout_marginStart="8dp" />
@@ -97,7 +97,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="2ª → 3ª"
+                android:text="@string/gear_2_3"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp" />
 
@@ -117,7 +117,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="km/h"
+                android:text="@string/lbl_kmh"
                 android:textColor="#7A7FA8"
                 android:textSize="12sp"
                 android:layout_marginStart="8dp" />
@@ -136,7 +136,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="3ª → 4ª"
+                android:text="@string/gear_3_4"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp" />
 
@@ -156,7 +156,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="km/h"
+                android:text="@string/lbl_kmh"
                 android:textColor="#7A7FA8"
                 android:textSize="12sp"
                 android:layout_marginStart="8dp" />
@@ -175,7 +175,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="4ª → 5ª"
+                android:text="@string/gear_4_5"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp" />
 
@@ -195,7 +195,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="km/h"
+                android:text="@string/lbl_kmh"
                 android:textColor="#7A7FA8"
                 android:textSize="12sp"
                 android:layout_marginStart="8dp" />
@@ -206,7 +206,7 @@
             android:id="@+id/boton_restablecer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="↺ Restablecer valores del motor"
+            android:text="@string/gear_restablecer_motor"
             android:textColor="#2979FF"
             android:textSize="13sp"
             android:gravity="center"
@@ -227,7 +227,7 @@
                 android:id="@+id/boton_cancelar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cancelar"
+                android:text="@string/btn_cancelar"
                 android:textColor="#B0B0B0"
                 android:textSize="14sp"
                 android:padding="12dp" />
@@ -236,7 +236,7 @@
                 android:id="@+id/boton_guardar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Guardar"
+                android:text="@string/btn_guardar"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:background="@drawable/boton_agregar_bg"

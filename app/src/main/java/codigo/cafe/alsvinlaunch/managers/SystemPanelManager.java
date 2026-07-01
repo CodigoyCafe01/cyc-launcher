@@ -111,7 +111,7 @@ public class SystemPanelManager {
         icono.setLayoutParams(paramIcono);
 
         TextView etiqueta = new TextView(actividad);
-        etiqueta.setText(app.label);
+        etiqueta.setText(app.getLabel(actividad));
         etiqueta.setTextColor(Color.WHITE);
         etiqueta.setTextSize(14);
 
@@ -138,7 +138,7 @@ public class SystemPanelManager {
             actividad.startActivity(intent);
         } catch (Exception e) {
             if (listener != null) listener.onAppOpenFailed();
-            Toast.makeText(actividad, "No se pudo abrir " + app.label, Toast.LENGTH_SHORT).show();
+            Toast.makeText(actividad, actividad.getString(R.string.msg_no_abrir_app_x, app.getLabel(actividad)), Toast.LENGTH_SHORT).show();
         }
     }
 }

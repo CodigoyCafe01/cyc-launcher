@@ -10,6 +10,8 @@ import android.provider.Settings;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import codigo.cafe.alsvinlaunch.R;
+
 public class PermissionsManager {
 
     public static final int REQUEST_LOCATION = 1001;
@@ -58,12 +60,10 @@ public class PermissionsManager {
         if (tieneNotificationListener()) return;
 
         new AlertDialog.Builder(actividad)
-                .setTitle("⚠  Permiso necesario")
-                .setMessage("Activá el acceso a notificaciones para que " +
-                        "el widget de música funcione correctamente.\n\n" +
-                        "• Acceso a notificaciones (widget de música)")
-                .setPositiveButton("Abrir ajustes", (d, w) -> abrirNotificationSettings())
-                .setNegativeButton("Ahora no", null)
+                .setTitle(R.string.perm_titulo)
+                .setMessage(R.string.perm_mensaje)
+                .setPositiveButton(R.string.btn_abrir_ajustes, (d, w) -> abrirNotificationSettings())
+                .setNegativeButton(R.string.btn_ahora_no, null)
                 .show();
     }
 

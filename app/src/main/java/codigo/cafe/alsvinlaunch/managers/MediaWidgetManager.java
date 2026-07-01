@@ -711,7 +711,7 @@ public class MediaWidgetManager {
                 if (i != null) actividad.startActivity(i);
             }
         } catch (Exception e) {
-            Toast.makeText(actividad, "No se pudo abrir la app", Toast.LENGTH_SHORT).show();
+            Toast.makeText(actividad, actividad.getString(R.string.msg_no_abrir_app), Toast.LENGTH_SHORT).show();
         }
     }
 

@@ -20,6 +20,7 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
+            <!-- Grupo izquierdo: candado (siempre visible) -->
             <ImageView
                 android:id="@+id/btn_theme_toggle"
                 android:layout_width="40dp"
@@ -29,103 +30,112 @@
                 android:clickable="true"
                 android:focusable="true" />
 
+            <!-- Grupo central flexible: permisos + WiFi + BT.
+                 Ocupa el espacio sobrante (weight=1) y recorta su
+                 contenido antes que empujar los iconos de los extremos. -->
             <LinearLayout
-                android:id="@+id/badge_permisos"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/shortcut_bg"
-                android:paddingStart="10dp"
-                android:paddingEnd="12dp"
-                android:layout_marginStart="10dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone">
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@android:drawable/ic_dialog_alert" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Permisos"
-                    android:textColor="#FFC107"
-                    android:textSize="11sp"
-                    android:layout_marginStart="5dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/indicador_wifi"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/shortcut_bg"
-                android:paddingStart="10dp"
-                android:paddingEnd="12dp"
-                android:layout_marginStart="12dp"
-                android:clickable="true"
-                android:focusable="true">
-
-                <ImageView
-                    android:id="@+id/icono_wifi"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_wifi_off" />
-
-                <TextView
-                    android:id="@+id/texto_wifi"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sin WiFi"
-                    android:textColor="#B0B0B0"
-                    android:textSize="11sp"
-                    android:layout_marginStart="6dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:maxWidth="100dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/indicador_bluetooth"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/shortcut_bg"
-                android:paddingStart="10dp"
-                android:paddingEnd="12dp"
-                android:layout_marginStart="8dp"
-                android:clickable="true"
-                android:focusable="true">
-
-                <ImageView
-                    android:id="@+id/icono_bluetooth"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_bt_off" />
-
-                <TextView
-                    android:id="@+id/texto_bluetooth"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="BT Off"
-                    android:textColor="#B0B0B0"
-                    android:textSize="11sp"
-                    android:layout_marginStart="6dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:maxWidth="120dp" />
-            </LinearLayout>
-
-            <View
                 android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:clipChildren="false">
 
+                <LinearLayout
+                    android:id="@+id/badge_permisos"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/shortcut_bg"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginStart="10dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@android:drawable/ic_dialog_alert" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lbl_permisos"
+                        android:textColor="#FFC107"
+                        android:textSize="11sp"
+                        android:layout_marginStart="5dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/indicador_wifi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/shortcut_bg"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginStart="12dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/icono_wifi"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_wifi_off" />
+
+                    <TextView
+                        android:id="@+id/texto_wifi"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/estado_sin_wifi"
+                        android:textColor="#B0B0B0"
+                        android:textSize="11sp"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:maxWidth="90dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/indicador_bluetooth"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/shortcut_bg"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginStart="8dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/icono_bluetooth"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_bt_off" />
+
+                    <TextView
+                        android:id="@+id/texto_bluetooth"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/estado_bt_off"
+                        android:textColor="#B0B0B0"
+                        android:textSize="11sp"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:maxWidth="90dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Grupo derecho: paleta + idioma + donación (siempre visibles) -->
             <LinearLayout
                 android:id="@+id/btn_color_fondo"
                 android:layout_width="wrap_content"
@@ -143,6 +153,26 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:src="@drawable/ic_palette" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_idioma"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/shortcut_bg"
+                android:paddingStart="10dp"
+                android:paddingEnd="12dp"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_language" />
 
             </LinearLayout>
 
@@ -229,7 +259,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="MARCHA"
+                        android:text="@string/lbl_marcha"
                         android:textColor="#5A6080"
                         android:textSize="10sp"
                         android:letterSpacing="0.15"
@@ -468,7 +498,7 @@
                     android:layout_marginTop="4dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Música"
+                    android:text="@string/shortcut_musica"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -499,7 +529,7 @@
                     android:layout_marginTop="4dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Navegación"
+                    android:text="@string/shortcut_navegacion"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -530,7 +560,7 @@
                     android:layout_marginTop="4dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Teléfono"
+                    android:text="@string/shortcut_telefono"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -561,7 +591,7 @@
                     android:layout_marginTop="4dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Radio"
+                    android:text="@string/shortcut_radio"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -592,7 +622,7 @@
                     android:layout_marginTop="4dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Config."
+                    android:text="@string/shortcut_config"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -621,7 +651,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Apps"
+                    android:text="@string/lbl_apps"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>

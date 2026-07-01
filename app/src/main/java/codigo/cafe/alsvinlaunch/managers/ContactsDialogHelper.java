@@ -112,7 +112,7 @@ public class ContactsDialogHelper {
                         .remove("contacto_nombre_" + indice)
                         .remove("contacto_numero_" + indice)
                         .commit();
-                Toast.makeText(actividad, "Contacto eliminado", Toast.LENGTH_SHORT).show();
+                Toast.makeText(actividad, actividad.getString(R.string.msg_contacto_eliminado), Toast.LENGTH_SHORT).show();
                 dialogo.dismiss();
                 mostrar();
             });
@@ -120,7 +120,7 @@ public class ContactsDialogHelper {
         } else {
             grupoContacto.setVisibility(View.GONE);
             botonAgregar.setVisibility(View.VISIBLE);
-            botonAgregar.setText("+ Agregar contacto " + (indice + 1));
+            botonAgregar.setText(actividad.getString(R.string.btn_agregar_contacto, indice + 1));
             botonAgregar.setOnClickListener(v -> {
                 dialogo.dismiss();
                 mostrarDialogoAgregar(indice);
@@ -155,7 +155,7 @@ public class ContactsDialogHelper {
             String nombre = campoNombre.getText().toString().trim();
             String numero = campoNumero.getText().toString().trim();
             if (nombre.isEmpty() || numero.isEmpty()) {
-                Toast.makeText(actividad, "Completá ambos campos", Toast.LENGTH_SHORT).show();
+                Toast.makeText(actividad, actividad.getString(R.string.msg_completa_campos), Toast.LENGTH_SHORT).show();
                 return;
             }
             guardarContacto(indice, nombre, numero);
@@ -268,9 +268,9 @@ public class ContactsDialogHelper {
         String info = btCallManager.obtenerInfoDiagnostico();
 
         new AlertDialog.Builder(actividad)
-                .setTitle("Diagnóstico BT")
+                .setTitle(R.string.dlg_diagnostico_bt)
                 .setMessage(info)
-                .setPositiveButton("Cerrar", null)
+                .setPositiveButton(R.string.btn_cerrar, null)
                 .show();
     }
 

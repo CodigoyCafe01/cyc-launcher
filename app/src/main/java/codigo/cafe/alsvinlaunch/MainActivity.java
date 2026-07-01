@@ -7,6 +7,7 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -43,6 +44,7 @@ import codigo.cafe.alsvinlaunch.managers.SpeedManager;
 import codigo.cafe.alsvinlaunch.managers.StatusIndicatorManager;
 import codigo.cafe.alsvinlaunch.managers.SystemPanelManager;
 import codigo.cafe.alsvinlaunch.managers.TourManager;
+import codigo.cafe.alsvinlaunch.util.LocaleHelper;
 
 /**
  * Actividad principal del launcher.
@@ -98,6 +100,11 @@ public class MainActivity extends Activity {
     // ══════════════════════════════════════
     //  CICLO DE VIDA — onCreate
     // ══════════════════════════════════════
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -274,6 +281,7 @@ public class MainActivity extends Activity {
         configurarIndicadoresEstado();
         configurarReproductor();
         configurarBotonColorFondo();
+        configurarBotonIdioma();
 
         // ── Carga inicial de datos ──
         shortcutManager.cargar();
@@ -373,7 +381,7 @@ public class MainActivity extends Activity {
             donationManager.verificarComprasPendientes(new DonationManager.OnDonacionListener() {
                 @Override
                 public void onDonacionExitosa() {
-                    mostrarMensaje("✓ Donación restaurada. ¡Gracias!");
+                    mostrarMensaje(getString(R.string.msg_donacion_restaurada));
                     actualizarVisibilidadDonacion();
                 }
 
@@ -494,7 +502,7 @@ public class MainActivity extends Activity {
                     startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
                 } catch (Exception ex) {
                     abriendoApp = false;
-                    mostrarMensaje("No se pudo abrir los ajustes");
+                    mostrarMensaje(getString(R.string.msg_no_ajustes));
                 }
             }
             return true;
@@ -549,7 +557,7 @@ public class MainActivity extends Activity {
                     startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
                 } catch (Exception ex) {
                     abriendoApp = false;
-                    mostrarMensaje("No se pudo abrir Bluetooth");
+                    mostrarMensaje(getString(R.string.msg_no_bluetooth));
                 }
             }
         });
@@ -561,9 +569,9 @@ public class MainActivity extends Activity {
             prefs.edit().putBoolean(PREF_COLOR_DINAMICO, modoColorDinamico).apply();
 
             if (modoColorDinamico) {
-                mostrarMensaje("Color dinámico activado — long press para desactivar");
+                mostrarMensaje(getString(R.string.msg_color_dinamico_on));
             } else {
-                mostrarMensaje("Color dinámico desactivado");
+                mostrarMensaje(getString(R.string.msg_color_dinamico_off));
                 animarColorFondo(COLOR_BASE_FONDO);
             }
             return true;
@@ -578,6 +586,45 @@ public class MainActivity extends Activity {
         View btn = findViewById(R.id.btn_color_fondo);
         if (btn == null) return;
         btn.setOnClickListener(v -> mostrarPaletaColores());
+    }
+
+    // ══════════════════════════════════════
+    //  SELECTOR DE IDIOMA
+    // ══════════════════════════════════════
+
+    private void configurarBotonIdioma() {
+        View btn = findViewById(R.id.btn_idioma);
+        if (btn == null) return;
+        btn.setOnClickListener(v -> mostrarSelectorIdioma());
+    }
+
+    private void mostrarSelectorIdioma() {
+        // Cada idioma se muestra en su propio nombre, no traducido.
+        final String[] codigos  = { LocaleHelper.ESPANOL, LocaleHelper.INGLES };
+        final String[] nombres  = { "Español", "English" };
+
+        String actual = LocaleHelper.getIdiomaGuardado(this);
+        int seleccion = actual.equals(LocaleHelper.INGLES) ? 1 : 0;
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.idioma_titulo)
+                .setSingleChoiceItems(nombres, seleccion, (dialog, which) -> {
+                    dialog.dismiss();
+                    String nuevo = codigos[which];
+                    if (!nuevo.equals(LocaleHelper.getIdiomaGuardado(this))) {
+                        LocaleHelper.guardarIdioma(this, nuevo);
+                        recrearParaAplicarIdioma();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** Recrea la actividad para que el nuevo idioma se aplique a toda la UI. */
+    private void recrearParaAplicarIdioma() {
+        // recreate() reejecuta attachBaseContext -> LocaleHelper.onAttach con el
+        // idioma ya guardado, así que toda la jerarquía se reconstruye traducida.
+        recreate();
     }
 
     private void mostrarPaletaColores() {
@@ -597,7 +644,7 @@ public class MainActivity extends Activity {
         int cols   = 5;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle("Color de fondo");
+        builder.setTitle(R.string.dlg_color_fondo_titulo);
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
         LinearLayout container = new LinearLayout(ctx);
@@ -665,7 +712,7 @@ public class MainActivity extends Activity {
 
         // ── Sliders RGB personalizados ──
         TextView labelPersonalizado = new TextView(ctx);
-        labelPersonalizado.setText("Personalizado (RGB)");
+        labelPersonalizado.setText(R.string.lbl_personalizado_rgb);
         labelPersonalizado.setTextColor(0xFFB0B0B0);
         labelPersonalizado.setTextSize(12);
         LinearLayout.LayoutParams tvLp = new LinearLayout.LayoutParams(
@@ -739,11 +786,11 @@ public class MainActivity extends Activity {
         scroll.addView(container);
         builder.setView(scroll);
 
-        builder.setPositiveButton("Aplicar", (dialog, which) ->
+        builder.setPositiveButton(R.string.btn_aplicar, (dialog, which) ->
                 aplicarColorFondo(Color.rgb(rgb[0], rgb[1], rgb[2])));
-        builder.setNeutralButton("Restablecer", (dialog, which) ->
+        builder.setNeutralButton(R.string.btn_restablecer, (dialog, which) ->
                 aplicarColorFondo(COLOR_BASE_FONDO));
-        builder.setNegativeButton("Cancelar", null);
+        builder.setNegativeButton(R.string.btn_cancelar, null);
 
         AlertDialog dialog = builder.create();
         if (dialog.getWindow() != null) {
@@ -800,7 +847,7 @@ public class MainActivity extends Activity {
 
             List<ActivityManager.RunningAppProcessInfo> procesos = am.getRunningAppProcesses();
             if (procesos == null) {
-                mostrarMensaje("No hay procesos");
+                mostrarMensaje(getString(R.string.msg_no_procesos));
                 return;
             }
 
@@ -823,16 +870,15 @@ public class MainActivity extends Activity {
                 long ramLibreDespues = memInfo.availMem / (1024 * 1024);
                 long ganancia = ramLibreDespues - ramLibreAntes;
 
-                mostrarMensaje("✓ " + totalLiberados + " apps cerradas\n"
-                        + "RAM antes: " + ramLibreAntes + "MB\n"
-                        + "RAM ahora: " + ramLibreDespues + "MB\n"
-                        + (ganancia > 0
-                        ? "+" + ganancia + "MB liberados"
-                        : "sin cambio"));
+                String detalleRam = ganancia > 0
+                        ? getString(R.string.msg_ram_liberada, ganancia)
+                        : getString(R.string.msg_ram_sin_cambio);
+                mostrarMensaje(getString(R.string.msg_apps_cerradas,
+                        totalLiberados, ramLibreAntes, ramLibreDespues, detalleRam));
             }, 500);
 
         } catch (Exception e) {
-            mostrarMensaje("Error: " + e.getMessage());
+            mostrarMensaje(getString(R.string.msg_error, e.getMessage()));
         }
     }
 
@@ -857,13 +903,13 @@ public class MainActivity extends Activity {
                 donationManager.iniciarDonacion(new DonationManager.OnDonacionListener() {
                     @Override
                     public void onDonacionExitosa() {
-                        mostrarMensaje("🎉 ¡Gracias por tu apoyo!");
+                        mostrarMensaje(getString(R.string.msg_gracias_apoyo));
                         actualizarVisibilidadDonacion();
                     }
 
                     @Override
                     public void onDonacionError(String mensaje) {
-                        mostrarMensaje("Error: " + mensaje);
+                        mostrarMensaje(getString(R.string.msg_error, mensaje));
                     }
                 })
         );

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AlsvinLauncher</string>
+    <string name="accessibility_service_description">
+    Allows importing Bluetooth contacts automatically
+</string>
+
+    <!-- ══════════ Language selector ══════════ -->
+    <string name="idioma_titulo">Language</string>
+
+    <!-- ══════════ Home screen ══════════ -->
+    <string name="lbl_permisos">Permissions</string>
+    <string name="estado_sin_wifi">No WiFi</string>
+    <string name="estado_bt_off">BT Off</string>
+    <string name="lbl_marcha">GEAR</string>
+    <string name="shortcut_musica">Music</string>
+    <string name="shortcut_navegacion">Navigation</string>
+    <string name="shortcut_telefono">Phone</string>
+    <string name="shortcut_radio">Radio</string>
+    <string name="shortcut_config">Settings</string>
+    <string name="lbl_apps">Apps</string>
+    <string name="lbl_vacio">Empty</string>
+
+    <!-- System panel (apps menu) -->
+    <string name="sys_telefono">Phone</string>
+    <string name="sys_radio">Radio</string>
+    <string name="sys_navegacion">Navigation</string>
+    <string name="sys_musica_usb">USB Music</string>
+    <string name="sys_bluetooth">Bluetooth</string>
+    <string name="sys_ajustes">Settings</string>
+    <string name="sys_camara_reversa">Rear Camera</string>
+    <string name="sys_info_auto">Car Info</string>
+    <string name="sys_usb_headunit">USB (HeadUnit)</string>
+    <string name="sys_config_headunit">HeadUnit Settings</string>
+
+    <!-- ══════════ MainActivity — messages ══════════ -->
+    <string name="msg_donacion_restaurada">✓ Donation restored. Thank you!</string>
+    <string name="msg_no_ajustes">Couldn\'t open settings</string>
+    <string name="msg_no_bluetooth">Couldn\'t open Bluetooth</string>
+    <string name="msg_color_dinamico_on">Dynamic color on — long press to turn off</string>
+    <string name="msg_color_dinamico_off">Dynamic color off</string>
+    <string name="dlg_color_fondo_titulo">Background color</string>
+    <string name="lbl_personalizado_rgb">Custom (RGB)</string>
+    <string name="btn_aplicar">Apply</string>
+    <string name="btn_restablecer">Reset</string>
+    <string name="btn_cancelar">Cancel</string>
+    <string name="btn_guardar">Save</string>
+    <string name="btn_cerrar">Close</string>
+    <string name="msg_no_procesos">No processes</string>
+    <string name="msg_apps_cerradas">✓ %1$d apps closed\nRAM before: %2$dMB\nRAM now: %3$dMB\n%4$s</string>
+    <string name="msg_ram_liberada">+%1$dMB freed</string>
+    <string name="msg_ram_sin_cambio">no change</string>
+    <string name="msg_error">Error: %1$s</string>
+    <string name="msg_gracias_apoyo">🎉 Thanks for your support!</string>
+
+    <!-- ══════════ All apps / App picker ══════════ -->
+    <string name="lbl_todas_apps">All Apps</string>
+    <string name="lbl_elegir_app">Choose App</string>
+    <string name="lbl_apps_sistema">System apps</string>
+    <string name="lbl_apps_del_sistema">System Apps</string>
+    <string name="lbl_cargando_apps">Loading system apps…</string>
+    <string name="btn_normal">Normal</string>
+    <string name="btn_sistema">System</string>
+
+    <!-- ══════════ Lock screen ══════════ -->
+    <string name="lbl_doble_toque">Double tap to unlock</string>
+
+    <!-- ══════════ Volume control ══════════ -->
+    <string name="vol_titulo">Volume Control</string>
+    <string name="vol_subtitulo">Adjust each audio channel</string>
+    <string name="vol_musica">🎵  Music / Apps</string>
+    <string name="vol_bluetooth">🔵  Bluetooth SCO</string>
+    <string name="vol_tono">🔔  Ringtone</string>
+    <string name="vol_alarma">⏰  Alarm</string>
+    <string name="vol_notificaciones">🔕  Notifications</string>
+    <string name="vol_sistema">⚙️  System</string>
+    <string name="vol_igualar">⚡ Match all</string>
+    <string name="vol_maximo">🔊 Max out</string>
+    <string name="vol_volver">← Back</string>
+
+    <!-- ══════════ Contacts ══════════ -->
+    <string name="dlg_nuevo_contacto">New Contact</string>
+    <string name="lbl_nombre">Name:</string>
+    <string name="hint_nombre">E.g. John</string>
+    <string name="lbl_numero">Number:</string>
+    <string name="hint_numero">E.g. 0991234567</string>
+    <string name="btn_seleccionar_google">👤 Pick from Google Contacts</string>
+    <string name="dlg_contactos_rapidos">Quick Contacts</string>
+    <string name="btn_info_bt">🔍 BT Info</string>
+    <string name="msg_contacto_eliminado">Contact removed</string>
+    <string name="btn_agregar_contacto">+ Add contact %1$d</string>
+    <string name="msg_completa_campos">Fill in both fields</string>
+    <string name="dlg_diagnostico_bt">BT Diagnostics</string>
+    <string name="msg_cargando_contactos">Loading contacts…</string>
+    <string name="msg_sin_contactos">No saved contacts.\nUse \'Import\' to add them.</string>
+
+    <!-- ══════════ Gears ══════════ -->
+    <string name="gear_titulo">Configure gears</string>
+    <string name="gear_subtitulo">Recommended speed (km/h) to shift up</string>
+    <string name="gear_tipo_motor">Engine type</string>
+    <string name="gear_1_2">1st → 2nd</string>
+    <string name="gear_2_3">2nd → 3rd</string>
+    <string name="gear_3_4">3rd → 4th</string>
+    <string name="gear_4_5">4th → 5th</string>
+    <string name="lbl_kmh">km/h</string>
+    <string name="gear_restablecer_motor">↺ Reset engine values</string>
+    <string name="msg_completa_rangos">Fill in all ranges</string>
+    <string name="msg_valor_invalido">Invalid value in gear %1$d → %2$d</string>
+    <string name="msg_rango_limite">Out of range (5–200 km/h)</string>
+
+    <!-- ══════════ Permissions ══════════ -->
+    <string name="perm_titulo">⚠  Permission needed</string>
+    <string name="perm_mensaje">Enable notification access so the music widget works properly.\n\n• Notification access (music widget)</string>
+    <string name="btn_abrir_ajustes">Open settings</string>
+    <string name="btn_ahora_no">Not now</string>
+
+    <!-- ══════════ Apps / shortcuts ══════════ -->
+    <string name="msg_no_abrir_app">Couldn\'t open the app</string>
+    <string name="msg_no_abrir_app_x">Couldn\'t open %1$s</string>
+
+    <!-- ══════════ WiFi / Bluetooth status ══════════ -->
+    <string name="estado_wifi_off">WiFi Off</string>
+    <string name="estado_sin_red">No network</string>
+    <string name="estado_conectado">Connected</string>
+    <string name="estado_wifi">WiFi</string>
+    <string name="estado_bt_on">BT On</string>
+
+    <!-- ══════════ Bluetooth call ══════════ -->
+    <string name="msg_numero_invalido">Invalid number</string>
+    <string name="msg_bt_no_conectar">Couldn\'t connect to the BT app.\nMake sure the phone is connected.</string>
+
+    <!-- ══════════ Welcome tour ══════════ -->
+    <string name="tour_shortcuts_titulo">Shortcuts</string>
+    <string name="tour_shortcuts_desc">Tap to open the assigned app. Long press to change which app shows in each shortcut.</string>
+    <string name="tour_apps_titulo">All apps</string>
+    <string name="tour_apps_desc">Browse and open any app installed on the head unit. Long press here to see this tour again.</string>
+    <string name="tour_reloj_titulo">Clock</string>
+    <string name="tour_reloj_desc">Tap to go to the lock screen. Long press to open the date and time settings.</string>
+    <string name="tour_velocimetro_titulo">GPS Speedometer</string>
+    <string name="tour_velocimetro_desc">Shows your current speed in km/h using the device GPS. Requires location permission.</string>
+    <string name="tour_marcha_titulo">Gear indicator</string>
+    <string name="tour_marcha_desc">Shows the estimated gear based on your speed. Tap to configure the speed ranges for each gear.</string>
+    <string name="tour_reproductor_titulo">Audio player</string>
+    <string name="tour_reproductor_desc">Control music, radio or any audio without leaving the launcher. Long press to enable the dynamic background color.</string>
+    <string name="tour_wifi_titulo">WiFi status</string>
+    <string name="tour_wifi_desc">Shows the connected WiFi network in real time. Tap to open network settings.</string>
+    <string name="tour_bluetooth_titulo">Bluetooth</string>
+    <string name="tour_bluetooth_desc">Shows the paired device. Tap to open Bluetooth settings.</string>
+    <string name="tour_bloqueo_titulo">Lock &amp; Kiosk Mode</string>
+    <string name="tour_bloqueo_desc">Tap to lock the screen. Long press to enable Kiosk Mode — the launcher will return automatically after 30 s in another app.</string>
+    <string name="btn_saltar">Skip</string>
+    <string name="btn_anterior">‹ Previous</string>
+    <string name="btn_siguiente">Next ›</string>
+    <string name="btn_finalizar">Finish</string>
+</resources>

@@ -1,6 +1,7 @@
 package codigo.cafe.alsvinlaunch.activity;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -10,10 +11,16 @@ import android.widget.TextView;
 
 import codigo.cafe.alsvinlaunch.R;
 import codigo.cafe.alsvinlaunch.managers.ClockManager;
+import codigo.cafe.alsvinlaunch.util.LocaleHelper;
 
 public class LockScreenActivity extends Activity {
 
     private ClockManager clockManager;
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -163,19 +163,19 @@ public class GearRangesDialog {
             for (int i = 0; i < 4; i++) {
                 String txt = inputs[i].getText().toString().trim();
                 if (TextUtils.isEmpty(txt)) {
-                    Toast.makeText(actividad, "Completa todos los rangos",
+                    Toast.makeText(actividad, actividad.getString(R.string.msg_completa_rangos),
                             Toast.LENGTH_SHORT).show();
                     return;
                 }
                 try {
                     cortes[i] = Integer.parseInt(txt);
                 } catch (NumberFormatException e) {
-                    Toast.makeText(actividad, "Valor inválido en " + (i + 1) + "ª → " + (i + 2) + "ª",
+                    Toast.makeText(actividad, actividad.getString(R.string.msg_valor_invalido, i + 1, i + 2),
                             Toast.LENGTH_SHORT).show();
                     return;
                 }
                 if (cortes[i] < 5 || cortes[i] > 200) {
-                    Toast.makeText(actividad, "Rango fuera de límite (5–200 km/h)",
+                    Toast.makeText(actividad, actividad.getString(R.string.msg_rango_limite),
                             Toast.LENGTH_SHORT).show();
                     return;
                 }

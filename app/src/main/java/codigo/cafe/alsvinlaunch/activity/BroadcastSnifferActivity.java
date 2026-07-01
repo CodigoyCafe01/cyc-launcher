@@ -30,8 +30,14 @@ import java.util.List;
 import java.util.Locale;
 
 import codigo.cafe.alsvinlaunch.services.ServicioNotificaciones;
+import codigo.cafe.alsvinlaunch.util.LocaleHelper;
 
 public class BroadcastSnifferActivity extends Activity {
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
 
     // ── Tabs ──────────────────────────────────────────────────────────────────
     private static final int TAB_TODOS      = 0;

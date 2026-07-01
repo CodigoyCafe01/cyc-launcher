@@ -100,7 +100,7 @@ public class BluetoothContactsManager {
      */
     public void mostrarImportador() {
         actividad.runOnUiThread(() ->
-                Toast.makeText(actividad, "Cargando contactos...", Toast.LENGTH_SHORT).show());
+                Toast.makeText(actividad, actividad.getString(R.string.msg_cargando_contactos), Toast.LENGTH_SHORT).show());
 
         new Thread(() -> {
             final List<ContactoBt> contactos = obtenerContactos();
@@ -320,7 +320,7 @@ public class BluetoothContactsManager {
 
         if (guardados.isEmpty()) {
             TextView empty = new TextView(actividad);
-            empty.setText("No hay contactos guardados.\nUsá 'Importar' para agregarlos.");
+            empty.setText(R.string.msg_sin_contactos);
             empty.setTextColor(Color.parseColor("#888888"));
             empty.setTextSize(13);
             empty.setGravity(Gravity.CENTER);

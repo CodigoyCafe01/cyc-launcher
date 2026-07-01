@@ -2,6 +2,7 @@ package codigo.cafe.alsvinlaunch.activity;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
@@ -25,6 +26,7 @@ import java.util.Set;
 
 import codigo.cafe.alsvinlaunch.R;
 import codigo.cafe.alsvinlaunch.model.AppInfo;
+import codigo.cafe.alsvinlaunch.util.LocaleHelper;
 
 public class AppPickerActivity extends Activity {
 
@@ -36,6 +38,11 @@ public class AppPickerActivity extends Activity {
     private TextView btnToggle;
     private TextView tvCargando;
     private GridView grid;
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,8 +94,8 @@ public class AppPickerActivity extends Activity {
         if (appsNormales == null) return; // todavía cargando
         if (!mostrandoSistema) {
             mostrandoSistema = true;
-            btnToggle.setText("Normal");
-            ((TextView) findViewById(R.id.tv_titulo)).setText("Apps del Sistema");
+            btnToggle.setText(R.string.btn_normal);
+            ((TextView) findViewById(R.id.tv_titulo)).setText(R.string.lbl_apps_del_sistema);
 
             if (appsSistema != null) {
                 appList = appsSistema;
@@ -111,8 +118,8 @@ public class AppPickerActivity extends Activity {
             }
         } else {
             mostrandoSistema = false;
-            btnToggle.setText("Sistema");
-            ((TextView) findViewById(R.id.tv_titulo)).setText("Elegir App");
+            btnToggle.setText(R.string.btn_sistema);
+            ((TextView) findViewById(R.id.tv_titulo)).setText(R.string.lbl_elegir_app);
             appList = appsNormales;
             adapter.notifyDataSetChanged();
         }

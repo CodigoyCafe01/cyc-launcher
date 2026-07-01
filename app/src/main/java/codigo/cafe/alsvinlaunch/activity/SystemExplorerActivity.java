@@ -15,8 +15,14 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import codigo.cafe.alsvinlaunch.R;
+import codigo.cafe.alsvinlaunch.util.LocaleHelper;
 
 public class SystemExplorerActivity extends Activity {
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
 
     private TextView tvLog;
     private ScrollView scrollView;

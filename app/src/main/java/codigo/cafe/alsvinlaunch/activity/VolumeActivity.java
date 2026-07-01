@@ -1,6 +1,7 @@
 package codigo.cafe.alsvinlaunch.activity;
 
 import android.app.Activity;
+import android.content.Context;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.view.View;
@@ -9,6 +10,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import codigo.cafe.alsvinlaunch.R;
+import codigo.cafe.alsvinlaunch.util.LocaleHelper;
 
 /**
  * VolumeActivity – Iguala y controla todos los streams de audio del sistema.
@@ -17,6 +19,11 @@ import codigo.cafe.alsvinlaunch.R;
 public class VolumeActivity extends Activity {
 
     private AudioManager audioManager;
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
 
     // Streams que vamos a controlar
     private static final int[] STREAMS = {

@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Nuevo Contacto"
+        android:text="@string/dlg_nuevo_contacto"
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:gravity="center"
@@ -18,7 +18,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Nombre:"
+        android:text="@string/lbl_nombre"
         android:textColor="#B0B0B0"
         android:textSize="12sp"/>
 
@@ -26,7 +26,7 @@
         android:id="@+id/campo_nombre"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Ej: Juan"
+        android:hint="@string/hint_nombre"
         android:textColor="#FFFFFF"
         android:textColorHint="#555555"
         android:textSize="16sp"
@@ -37,7 +37,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Número:"
+        android:text="@string/lbl_numero"
         android:textColor="#B0B0B0"
         android:textSize="12sp"
         android:paddingTop="16dp"/>
@@ -46,7 +46,7 @@
         android:id="@+id/campo_numero"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Ej: 0991234567"
+        android:hint="@string/hint_numero"
         android:textColor="#FFFFFF"
         android:textColorHint="#555555"
         android:textSize="16sp"
@@ -58,7 +58,7 @@
         android:id="@+id/boton_importar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="👤 Seleccionar de Google Contacts"
+        android:text="@string/btn_seleccionar_google"
         android:textColor="#2979FF"
         android:textSize="14sp"
         android:gravity="center"
@@ -80,7 +80,7 @@
             android:id="@+id/boton_cancelar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cancelar"
+            android:text="@string/btn_cancelar"
             android:textColor="#B0B0B0"
             android:textSize="14sp"
             android:padding="12dp"/>
@@ -89,7 +89,7 @@
             android:id="@+id/boton_guardar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Guardar"
+            android:text="@string/btn_guardar"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:background="@drawable/boton_agregar_bg"

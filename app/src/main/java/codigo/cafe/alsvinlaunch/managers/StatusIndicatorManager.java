@@ -176,7 +176,7 @@ public class StatusIndicatorManager {
                     } else if (estado == BluetoothAdapter.STATE_OFF
                             || estado == BluetoothAdapter.STATE_TURNING_OFF) {
                         ultimoNombreBt = null;
-                        setBtEstado(R.drawable.ic_bt_off, "BT Off", COLOR_INACTIVO);
+                        setBtEstado(R.drawable.ic_bt_off, actividad.getString(R.string.estado_bt_off), COLOR_INACTIVO);
                     }
 
                 } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(accion)) {
@@ -229,7 +229,7 @@ public class StatusIndicatorManager {
                     .getSystemService(Context.WIFI_SERVICE);
 
             if (wm == null || !wm.isWifiEnabled()) {
-                setWifiEstado(R.drawable.ic_wifi_off, "WiFi Off", COLOR_INACTIVO);
+                setWifiEstado(R.drawable.ic_wifi_off, actividad.getString(R.string.estado_wifi_off), COLOR_INACTIVO);
                 return;
             }
 
@@ -241,7 +241,7 @@ public class StatusIndicatorManager {
                     && netInfo.getType() == ConnectivityManager.TYPE_WIFI;
 
             if (!hayConexionWifi) {
-                setWifiEstado(R.drawable.ic_wifi_off, "Sin red", COLOR_INACTIVO);
+                setWifiEstado(R.drawable.ic_wifi_off, actividad.getString(R.string.estado_sin_red), COLOR_INACTIVO);
                 return;
             }
 
@@ -253,10 +253,10 @@ public class StatusIndicatorManager {
                         && !ssid.isEmpty()
                         && !ssid.equals("<unknown ssid>");
                 setWifiEstado(R.drawable.ic_wifi_on,
-                        ssidValido ? ssid : "Conectado",
+                        ssidValido ? ssid : actividad.getString(R.string.estado_conectado),
                         COLOR_WIFI_CONECTADO);
             } else {
-                setWifiEstado(R.drawable.ic_wifi_off, "Sin red", COLOR_INACTIVO);
+                setWifiEstado(R.drawable.ic_wifi_off, actividad.getString(R.string.estado_sin_red), COLOR_INACTIVO);
             }
         } catch (Exception e) {
             setWifiEstado(R.drawable.ic_wifi_off, "WiFi", COLOR_INACTIVO);
@@ -276,7 +276,7 @@ public class StatusIndicatorManager {
     public void actualizarBluetooth() {
         // Guard: si sabemos que BT no está disponible, no intentar nada
         if (!btAdapterDisponible || btAdapter == null) {
-            setBtEstado(R.drawable.ic_bt_off, "BT Off", COLOR_INACTIVO);
+            setBtEstado(R.drawable.ic_bt_off, actividad.getString(R.string.estado_bt_off), COLOR_INACTIVO);
             return;
         }
 
@@ -288,18 +288,18 @@ public class StatusIndicatorManager {
             } catch (Exception e) {
                 // Binder nulo u otro error del sistema — no reintentar
                 btAdapterDisponible = false;
-                setBtEstado(R.drawable.ic_bt_off, "BT Off", COLOR_INACTIVO);
+                setBtEstado(R.drawable.ic_bt_off, actividad.getString(R.string.estado_bt_off), COLOR_INACTIVO);
                 return;
             }
 
             if (habilitado) {
                 String nombre = obtenerDispositivoConectado();
                 iconoBluetooth.setImageResource(R.drawable.ic_bt_on);
-                textoBluetooth.setText(nombre != null ? nombre : "BT On");
+                textoBluetooth.setText(nombre != null ? nombre : actividad.getString(R.string.estado_bt_on));
                 textoBluetooth.setTextColor(COLOR_BT_ACTIVO);
             } else {
                 ultimoNombreBt = null;
-                setBtEstado(R.drawable.ic_bt_off, "BT Off", COLOR_INACTIVO);
+                setBtEstado(R.drawable.ic_bt_off, actividad.getString(R.string.estado_bt_off), COLOR_INACTIVO);
             }
         } catch (Exception e) {
             setBtEstado(R.drawable.ic_bt_off, "BT", COLOR_INACTIVO);
@@ -332,7 +332,7 @@ public class StatusIndicatorManager {
                         if (conectados != null && !conectados.isEmpty()) {
                             String nombre = conectados.get(0).getName();
                             ultimoNombreBt = (nombre != null && !nombre.isEmpty())
-                                    ? nombre : "Conectado";
+                                    ? nombre : actividad.getString(R.string.estado_conectado);
                             return ultimoNombreBt;
                         }
                     } catch (Exception ignored) {}
@@ -348,7 +348,7 @@ public class StatusIndicatorManager {
                         if ((boolean) esConectado.invoke(dispositivo)) {
                             String nombre = dispositivo.getName();
                             ultimoNombreBt = (nombre != null && !nombre.isEmpty())
-                                    ? nombre : "Conectado";
+                                    ? nombre : actividad.getString(R.string.estado_conectado);
                             return ultimoNombreBt;
                         }
                     } catch (Exception ignored) {}
@@ -363,7 +363,7 @@ public class StatusIndicatorManager {
                             .getMethod("getProfileConnectionState", int.class);
                     int estado = (int) getState.invoke(btAdapter, perfil);
                     if (estado == BluetoothProfile.STATE_CONNECTED) {
-                        return ultimoNombreBt != null ? ultimoNombreBt : "Conectado";
+                        return ultimoNombreBt != null ? ultimoNombreBt : actividad.getString(R.string.estado_conectado);
                     }
                 } catch (Exception ignored) {}
             }

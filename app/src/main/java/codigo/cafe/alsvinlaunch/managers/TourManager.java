@@ -78,32 +78,32 @@ public class TourManager {
     private TourStep[] buildSteps() {
         return new TourStep[]{
             new TourStep(R.id.shortcut_0,
-                "Accesos directos",
-                "Toca para abrir la app asignada. Mantén presionado para cambiar qué app aparece en cada acceso directo."),
+                activity.getString(R.string.tour_shortcuts_titulo),
+                activity.getString(R.string.tour_shortcuts_desc)),
             new TourStep(R.id.btn_all_apps,
-                "Todas las apps",
-                "Explora y abre cualquier app instalada en el headunit. Mantén presionado aquí para volver a ver este tour."),
+                activity.getString(R.string.tour_apps_titulo),
+                activity.getString(R.string.tour_apps_desc)),
             new TourStep(R.id.boton_reloj,
-                "Reloj",
-                "Toca para ir a la pantalla de bloqueo. Mantén presionado para abrir los ajustes de fecha y hora."),
+                activity.getString(R.string.tour_reloj_titulo),
+                activity.getString(R.string.tour_reloj_desc)),
             new TourStep(R.id.speedometer_view,
-                "Velocímetro GPS",
-                "Muestra tu velocidad actual en km/h usando el GPS del dispositivo. Requiere permiso de ubicación."),
+                activity.getString(R.string.tour_velocimetro_titulo),
+                activity.getString(R.string.tour_velocimetro_desc)),
             new TourStep(R.id.gear_widget,
-                "Indicador de marcha",
-                "Muestra la marcha estimada según tu velocidad. Toca para configurar los rangos de velocidad de cada marcha."),
+                activity.getString(R.string.tour_marcha_titulo),
+                activity.getString(R.string.tour_marcha_desc)),
             new TourStep(R.id.widget_reproductor,
-                "Reproductor de audio",
-                "Controla música, radio o cualquier audio sin salir del launcher. Mantén presionado para activar el color dinámico de fondo."),
+                activity.getString(R.string.tour_reproductor_titulo),
+                activity.getString(R.string.tour_reproductor_desc)),
             new TourStep(R.id.indicador_wifi,
-                "Estado WiFi",
-                "Muestra la red WiFi conectada en tiempo real. Toca para abrir la configuración de red."),
+                activity.getString(R.string.tour_wifi_titulo),
+                activity.getString(R.string.tour_wifi_desc)),
             new TourStep(R.id.indicador_bluetooth,
-                "Bluetooth",
-                "Muestra el dispositivo vinculado. Toca para abrir la configuración de Bluetooth."),
+                activity.getString(R.string.tour_bluetooth_titulo),
+                activity.getString(R.string.tour_bluetooth_desc)),
             new TourStep(R.id.btn_theme_toggle,
-                "Bloqueo y Modo Kiosk",
-                "Toca para bloquear la pantalla. Mantén presionado para activar el Modo Kiosk — el launcher regresará automáticamente tras 30 s en otra app."),
+                activity.getString(R.string.tour_bloqueo_titulo),
+                activity.getString(R.string.tour_bloqueo_desc)),
         };
     }
 
@@ -179,17 +179,17 @@ public class TourManager {
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER_VERTICAL);
 
-        btnSkip = makeButton("Saltar", Color.argb(130, 145, 145, 165), d);
+        btnSkip = makeButton(activity.getString(R.string.btn_saltar), Color.argb(130, 145, 145, 165), d);
         btnSkip.setOnClickListener(v -> finish());
 
         View spacer = new View(activity);
         spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 1, 1f));
 
-        btnPrev = makeButton("‹ Anterior", Color.argb(200, 108, 99, 255), d);
+        btnPrev = makeButton(activity.getString(R.string.btn_anterior), Color.argb(200, 108, 99, 255), d);
         btnPrev.setVisibility(View.INVISIBLE);
         btnPrev.setOnClickListener(v -> { if (currentStep > 0) showStep(currentStep - 1); });
 
-        btnNext = makeButton("Siguiente ›", Color.WHITE, d);
+        btnNext = makeButton(activity.getString(R.string.btn_siguiente), Color.WHITE, d);
         btnNext.setTypeface(null, Typeface.BOLD);
         btnNext.setOnClickListener(v -> {
             if (currentStep < steps.length - 1) showStep(currentStep + 1);
@@ -247,7 +247,9 @@ public class TourManager {
         tvDesc.setText(step.description);
         tvCounter.setText((index + 1) + " / " + steps.length);
         btnPrev.setVisibility(index > 0 ? View.VISIBLE : View.INVISIBLE);
-        btnNext.setText(index == steps.length - 1 ? "Finalizar" : "Siguiente ›");
+        btnNext.setText(index == steps.length - 1
+                ? activity.getString(R.string.btn_finalizar)
+                : activity.getString(R.string.btn_siguiente));
         btnSkip.setVisibility(index < steps.length - 1 ? View.VISIBLE : View.GONE);
 
         // Wait for the card to be laid out before computing its position

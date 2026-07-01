@@ -43,17 +43,17 @@ public class ConstantesSistema {
 
     // ── Apps del panel del sistema (las que aparecen en el FAB) ──
     public static final SystemApp[] APPS_PANEL_SISTEMA = {
-            new SystemApp("Teléfono",    PAQUETE_HIVEOS, ACTIVIDAD_TELEFONO,   R.drawable.ic_phone),
-            new SystemApp("Radio",       PAQUETE_HIVEOS, ACTIVIDAD_RADIO,      R.drawable.ic_radio),
-            new SystemApp("Navegación",  PAQUETE_HIVEOS, ACTIVIDAD_NAVI,       R.drawable.ic_navi),
-            new SystemApp("Música USB",  PAQUETE_HIVEOS, ACTIVIDAD_MUSICA_USB, R.drawable.ic_music),
-            new SystemApp("Bluetooth",   PAQUETE_HIVEOS, ACTIVIDAD_BLUETOOTH,  R.drawable.ic_bluetooth),
-            new SystemApp("Ajustes",     PAQUETE_HIVEOS, ACTIVIDAD_AJUSTES,    R.drawable.ic_settings),
-            new SystemApp("Cámara Reversa", PAQUETE_HIVEOS, ACTIVIDAD_CAMARA, R.drawable.ic_camera),
-            new SystemApp("Info Auto",   PAQUETE_HIVEOS, ACTIVIDAD_INFO_AUTO,  R.drawable.ic_car),
-            new SystemApp("USB (HeadUnit)",       PAQUETE_HEADUNIT, ACTIVIDAD_HU_SETTINGS, R.drawable.ic_usb,
+            new SystemApp(R.string.sys_telefono,    PAQUETE_HIVEOS, ACTIVIDAD_TELEFONO,   R.drawable.ic_phone),
+            new SystemApp(R.string.sys_radio,       PAQUETE_HIVEOS, ACTIVIDAD_RADIO,      R.drawable.ic_radio),
+            new SystemApp(R.string.sys_navegacion,  PAQUETE_HIVEOS, ACTIVIDAD_NAVI,       R.drawable.ic_navi),
+            new SystemApp(R.string.sys_musica_usb,  PAQUETE_HIVEOS, ACTIVIDAD_MUSICA_USB, R.drawable.ic_music),
+            new SystemApp(R.string.sys_bluetooth,   PAQUETE_HIVEOS, ACTIVIDAD_BLUETOOTH,  R.drawable.ic_bluetooth),
+            new SystemApp(R.string.sys_ajustes,     PAQUETE_HIVEOS, ACTIVIDAD_AJUSTES,    R.drawable.ic_settings),
+            new SystemApp(R.string.sys_camara_reversa, PAQUETE_HIVEOS, ACTIVIDAD_CAMARA, R.drawable.ic_camera),
+            new SystemApp(R.string.sys_info_auto,   PAQUETE_HIVEOS, ACTIVIDAD_INFO_AUTO,  R.drawable.ic_car),
+            new SystemApp(R.string.sys_usb_headunit,       PAQUETE_HEADUNIT, ACTIVIDAD_HU_SETTINGS, R.drawable.ic_usb,
                     SystemApp.extra(EXTRA_HU_START_DEST, HU_DEST_USB)),
-            new SystemApp("Configuración HeadUnit", PAQUETE_HEADUNIT, ACTIVIDAD_HU_SETTINGS, R.drawable.ic_settings),
+            new SystemApp(R.string.sys_config_headunit, PAQUETE_HEADUNIT, ACTIVIDAD_HU_SETTINGS, R.drawable.ic_settings),
 
     };
 
