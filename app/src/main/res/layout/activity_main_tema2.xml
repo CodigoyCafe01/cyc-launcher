@@ -1,0 +1,692 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    TEMA ALTERNATIVO de la pantalla de inicio.
+    Contiene los MISMOS IDs de vistas que activity_main.xml (los managers
+    los buscan por findViewById), pero con un diseño distinto: tarjetas
+    redondeadas, acento turquesa, orden Reloj · Reproductor · Velocímetro
+    y accesos directos circulares.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF12131C">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- ══════════ Barra superior ══════════ -->
+        <LinearLayout
+            android:id="@+id/top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/btn_theme_toggle"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_lock"
+                android:padding="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:clipChildren="false">
+
+                <LinearLayout
+                    android:id="@+id/badge_permisos"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/shortcut_bg_light"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginStart="10dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@android:drawable/ic_dialog_alert" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lbl_permisos"
+                        android:textColor="#FFC107"
+                        android:textSize="11sp"
+                        android:layout_marginStart="5dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/indicador_wifi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/shortcut_bg_light"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginStart="12dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/icono_wifi"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_wifi_off" />
+
+                    <TextView
+                        android:id="@+id/texto_wifi"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/estado_sin_wifi"
+                        android:textColor="#B0B0B0"
+                        android:textSize="11sp"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:maxWidth="90dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/indicador_bluetooth"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/shortcut_bg_light"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginStart="8dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/icono_bluetooth"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_bt_off" />
+
+                    <TextView
+                        android:id="@+id/texto_bluetooth"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/estado_bt_off"
+                        android:textColor="#B0B0B0"
+                        android:textSize="11sp"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:maxWidth="90dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_color_fondo"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/shortcut_bg_light"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_palette" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_idioma"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/shortcut_bg_light"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_language" />
+            </LinearLayout>
+
+            <!-- Volver al tema principal -->
+            <LinearLayout
+                android:id="@+id/btn_cambiar_tema"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/shortcut_bg_light"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_sun" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_donacion"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/shortcut_bg_light"
+                android:paddingStart="10dp"
+                android:paddingEnd="12dp"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_donate" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ══════════ Sección central: Reloj · Reproductor · Velocímetro ══════════ -->
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:rowCount="1"
+            android:columnCount="3"
+            android:paddingTop="10dp">
+
+            <!-- ── Columna 1: Reloj (tarjeta) ── -->
+            <LinearLayout
+                android:id="@+id/clock_section"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_columnWeight="1"
+                android:layout_gravity="fill"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:background="@drawable/tema2_card_bg"
+                android:layout_margin="6dp"
+                android:padding="10dp">
+
+                <LinearLayout
+                    android:id="@+id/boton_reloj"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/clock_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-thin"
+                        android:text="12:00"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="68sp" />
+
+                    <TextView
+                        android:id="@+id/date_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Lun, 1 Ene 2026"
+                        android:textColor="#00E0C6"
+                        android:textSize="15sp"
+                        android:letterSpacing="0.05" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ── Columna 2: Reproductor (tarjeta) ── -->
+            <LinearLayout
+                android:id="@+id/widget_reproductor"
+                android:foreground="?android:attr/selectableItemBackground"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_columnWeight="1"
+                android:layout_gravity="fill"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/tema2_card_bg"
+                android:layout_margin="6dp"
+                android:padding="12dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:id="@+id/reproductor_icono"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_music"
+                        android:scaleType="centerCrop"
+                        android:background="@drawable/tema2_circle_bg"
+                        android:padding="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="4dp">
+
+                        <TextView
+                            android:id="@+id/reproductor_titulo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="marquee"
+                            android:marqueeRepeatLimit="marquee_forever"
+                            android:scrollHorizontally="true"
+                            android:focusable="true"
+                            android:focusableInTouchMode="true"
+                            android:singleLine="true" />
+
+                        <TextView
+                            android:id="@+id/reproductor_artista"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#7FB7B0"
+                            android:textSize="11sp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:layout_marginTop="3dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:id="@+id/reproductor_tiempo_actual"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0:00"
+                        android:textColor="#7FB7B0"
+                        android:textSize="10sp"
+                        android:minWidth="32dp"
+                        android:gravity="center" />
+
+                    <SeekBar
+                        android:id="@+id/reproductor_seekbar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:max="1000"
+                        android:progress="0"
+                        android:progressTint="#00E0C6"
+                        android:thumbTint="#00E0C6" />
+
+                    <TextView
+                        android:id="@+id/reproductor_tiempo_total"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0:00"
+                        android:textColor="#7FB7B0"
+                        android:textSize="10sp"
+                        android:minWidth="32dp"
+                        android:gravity="center" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="6dp">
+
+                    <ImageView
+                        android:id="@+id/btn_anterior"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:src="@drawable/ic_anterior"
+                        android:padding="8dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <ImageView
+                        android:id="@+id/btn_play_pausa"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:src="@drawable/ic_play"
+                        android:padding="10dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp"
+                        android:background="@drawable/tema2_circle_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:elevation="2dp" />
+
+                    <ImageView
+                        android:id="@+id/btn_siguiente"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:src="@drawable/ic_siguiente"
+                        android:padding="8dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ── Columna 3: Velocímetro + marcha (tarjeta) ── -->
+            <LinearLayout
+                android:id="@+id/speed_text"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_columnWeight="1"
+                android:layout_gravity="fill"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:background="@drawable/tema2_card_bg"
+                android:layout_margin="6dp"
+                android:padding="8dp">
+
+                <codigo.cafe.alsvinlaunch.views.SpeedometerView
+                    android:id="@+id/speedometer_view"
+                    android:layout_width="140dp"
+                    android:layout_height="140dp" />
+
+                <LinearLayout
+                    android:id="@+id/gear_widget"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/tema2_circle_bg"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/gear_indicator"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-thin"
+                        android:text="--"
+                        android:textColor="#FFFFFF"
+                        android:textSize="40sp"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lbl_marcha"
+                        android:textColor="#7FB7B0"
+                        android:textSize="10sp"
+                        android:letterSpacing="0.15"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </GridLayout>
+
+        <!-- ══════════ Accesos directos circulares ══════════ -->
+        <LinearLayout
+            android:id="@+id/shortcuts_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingTop="8dp">
+
+            <LinearLayout
+                android:id="@+id/shortcut_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/shortcut_icon_0"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="@drawable/tema2_circle_bg"
+                    android:padding="16dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_add_shortcut" />
+
+                <TextView
+                    android:id="@+id/shortcut_name_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/shortcut_musica"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/shortcut_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/shortcut_icon_1"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="@drawable/tema2_circle_bg"
+                    android:padding="16dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_add_shortcut" />
+
+                <TextView
+                    android:id="@+id/shortcut_name_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/shortcut_navegacion"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/shortcut_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/shortcut_icon_2"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="@drawable/tema2_circle_bg"
+                    android:padding="16dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_add_shortcut" />
+
+                <TextView
+                    android:id="@+id/shortcut_name_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/shortcut_telefono"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/shortcut_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/shortcut_icon_3"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="@drawable/tema2_circle_bg"
+                    android:padding="16dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_add_shortcut" />
+
+                <TextView
+                    android:id="@+id/shortcut_name_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/shortcut_radio"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/shortcut_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/shortcut_icon_4"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="@drawable/tema2_circle_bg"
+                    android:padding="16dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_add_shortcut" />
+
+                <TextView
+                    android:id="@+id/shortcut_name_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/shortcut_config"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_all_apps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/all_apps_icon"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="@drawable/shortcut_bg_accent"
+                    android:padding="16dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_all_apps" />
+
+                <TextView
+                    android:id="@+id/all_apps_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/lbl_apps"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Panel de sistema (oculto por defecto) -->
+    <LinearLayout
+        android:id="@+id/system_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="72dp"
+        android:background="@drawable/system_panel_bg"
+        android:elevation="8dp"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="gone" />
+
+</FrameLayout>

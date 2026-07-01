@@ -57,6 +57,13 @@ public class MainActivity extends Activity {
     private static final String PREF_COLOR_FONDO = "color_fondo_personalizado";
     private static final int COLOR_BASE_FONDO = 0xFF1A1A2E;
 
+    // ── Tema de la pantalla de inicio ──
+    // Se guarda qué actividad-launcher debe mostrarse. La MainActivity (única
+    // con filtro HOME) actúa como despachador y redirige al tema elegido.
+    public static final String PREF_TEMA_INICIO = "tema_inicio";
+    public static final int TEMA_PRINCIPAL   = 0;
+    public static final int TEMA_ALTERNATIVO = 1;
+
     // Código de solicitud para el permiso de ubicación
     private static final int SOLICITUD_PERMISO_GPS = 200;
 
@@ -106,10 +113,25 @@ public class MainActivity extends Activity {
         super.attachBaseContext(LocaleHelper.onAttach(newBase));
     }
 
+    /**
+     * Layout que infla esta pantalla de inicio. Las subclases (temas
+     * alternativos) lo sobreescriben para reutilizar toda la lógica de
+     * MainActivity cambiando únicamente el diseño.
+     */
+    protected int getLayoutResId() {
+        return R.layout.activity_main;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+
+        // La MainActivity es la única con filtro HOME: si el usuario eligió un
+        // tema alternativo, redirige a su actividad y termina antes de inflar
+        // nada ni crear managers en esta instancia.
+        if (redirigirATemaSeleccionado()) return;
+
+        setContentView(getLayoutResId());
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         prefs = getSharedPreferences(NOMBRE_PREFS, MODE_PRIVATE);
@@ -282,6 +304,7 @@ public class MainActivity extends Activity {
         configurarReproductor();
         configurarBotonColorFondo();
         configurarBotonIdioma();
+        configurarBotonCambiarTema();
 
         // ── Carga inicial de datos ──
         shortcutManager.cargar();
@@ -329,6 +352,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
+        // clockManager puede ser null si onCreate redirigió a otro tema y terminó.
+        if (clockManager == null) return;
         clockManager.iniciar();
         if (!managersListos) return; // se dispararán al final de inicializarManagersCompletos()
 
@@ -340,6 +365,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
+        if (clockManager == null) return;
         clockManager.detener();
         if (!managersListos) return;
 
@@ -355,6 +381,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (clockManager == null) return; // onCreate redirigió a otro tema y terminó
         clockManager.actualizar();
         if (!managersListos) return; // se reanudará al final de inicializarManagersCompletos()
 
@@ -596,6 +623,57 @@ public class MainActivity extends Activity {
         View btn = findViewById(R.id.btn_idioma);
         if (btn == null) return;
         btn.setOnClickListener(v -> mostrarSelectorIdioma());
+    }
+
+    // ══════════════════════════════════════
+    //  CAMBIO DE TEMA DE INICIO
+    // ══════════════════════════════════════
+
+    private void configurarBotonCambiarTema() {
+        View btn = findViewById(R.id.btn_cambiar_tema);
+        if (btn == null) return;
+        btn.setOnClickListener(v -> alternarTemaInicio());
+    }
+
+    /**
+     * Redirige al tema alternativo si está seleccionado. Solo la MainActivity
+     * base despacha; las subclases (que YA son el tema destino) nunca redirigen,
+     * evitando así un bucle de reenvíos.
+     */
+    private boolean redirigirATemaSeleccionado() {
+        if (getClass() != MainActivity.class) return false;
+
+        int tema = getSharedPreferences(NOMBRE_PREFS, MODE_PRIVATE)
+                .getInt(PREF_TEMA_INICIO, TEMA_PRINCIPAL);
+        if (tema == TEMA_ALTERNATIVO) {
+            Intent i = new Intent(this,
+                    codigo.cafe.alsvinlaunch.activity.MainActivityTema2.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            startActivity(i);
+            overridePendingTransition(0, 0);
+            finish();
+            return true;
+        }
+        return false;
+    }
+
+    /** Alterna entre el tema principal y el alternativo y salta a su actividad. */
+    private void alternarTemaInicio() {
+        int actual = prefs.getInt(PREF_TEMA_INICIO, TEMA_PRINCIPAL);
+        int nuevo  = (actual == TEMA_PRINCIPAL) ? TEMA_ALTERNATIVO : TEMA_PRINCIPAL;
+        prefs.edit().putInt(PREF_TEMA_INICIO, nuevo).apply();
+
+        Class<?> destino = (nuevo == TEMA_ALTERNATIVO)
+                ? codigo.cafe.alsvinlaunch.activity.MainActivityTema2.class
+                : MainActivity.class;
+        if (getClass() == destino) return; // ya estamos en ese tema
+
+        abriendoApp = true; // evitar que el modo kiosco interfiera con el salto
+        Intent i = new Intent(this, destino);
+        i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        startActivity(i);
+        overridePendingTransition(0, 0);
+        finish();
     }
 
     private void mostrarSelectorIdioma() {
