@@ -93,6 +93,22 @@ public class MediaWidgetManager {
     // Caché nombre legible de paquetes ya consultados
     private final java.util.Map<String, String> cachePaquetes = new java.util.HashMap<>();
 
+    // Re-enganche post-attach: la sesión a veces entrega PlaybackState/metadata
+    // obsoletos o nulos justo al obtener el controlador (p. ej. al volver al
+    // launcher). Releemos el estado real unas cuantas veces durante ~2s.
+    private final Handler handlerReenganche = new Handler(Looper.getMainLooper());
+    private int reenganchesRestantes = 0;
+    private final Runnable runnableReenganche = new Runnable() {
+        @Override
+        public void run() {
+            if (destruido || controladorActual == null) return;
+            refrescarDesdeControlador();
+            if (reenganchesRestantes-- > 0 && controladorActual != null) {
+                handlerReenganche.postDelayed(this, 400L);
+            }
+        }
+    };
+
     private final Handler handlerSondeo = new Handler(Looper.getMainLooper());
     private final Runnable runnableSondeo = new Runnable() {
         @Override
@@ -239,6 +255,7 @@ public class MediaWidgetManager {
     public void detener() {
         handlerProgreso.removeCallbacks(runnableProgreso);
         handlerSondeo.removeCallbacks(runnableSondeo);
+        handlerReenganche.removeCallbacks(runnableReenganche);
         if (receptorMedia != null) {
             try {
                 actividad.unregisterReceiver(receptorMedia);
@@ -254,6 +271,12 @@ public class MediaWidgetManager {
             listenerSesiones = null;
         }
         desconectarCallback();
+        // Soltar el controlador para que al volver se haga un re-enganche limpio
+        // (re-registra el callback y relanza el runnable de progreso). Si se
+        // conservara, adjuntarControlador() tomaría el atajo por mismo token y
+        // el widget quedaría sin callbacks (icono/tiempo congelados o desaparece).
+        controladorActual = null;
+        estaReproduciendo = false;
         iniciado = false;
     }
 
@@ -398,6 +421,7 @@ public class MediaWidgetManager {
         if (controladorActual != null &&
                 controladorActual.getSessionToken().equals(nuevo.getSessionToken())) {
             refrescarDesdeControlador();
+            programarReenganche();
             return;
         }
         desconectarCallback();
@@ -436,6 +460,19 @@ public class MediaWidgetManager {
         };
         controladorActual.registerCallback(callbackControlador);
         refrescarDesdeControlador();
+        programarReenganche();
+    }
+
+    /**
+     * Relee el estado del controlador varias veces durante ~2s tras adjuntarlo.
+     * Cubre el caso en que la sesión entrega un PlaybackState/metadata obsoleto o
+     * nulo justo al obtener el controlador (icono sin actualizar, tiempo en 0).
+     */
+    private void programarReenganche() {
+        handlerReenganche.removeCallbacks(runnableReenganche);
+        if (destruido || controladorActual == null) return;
+        reenganchesRestantes = 5; // 5 reintentos * 400ms ≈ 2s de ventana
+        handlerReenganche.postDelayed(runnableReenganche, 400L);
     }
 
     private void desconectarCallback() {
@@ -557,6 +594,7 @@ public class MediaWidgetManager {
     private void limpiarControlador() {
         desconectarCallback();
         handlerProgreso.removeCallbacks(runnableProgreso);
+        handlerReenganche.removeCallbacks(runnableReenganche);
         controladorActual = null;
         estaReproduciendo = false;
         duracionMs = 0L;
