@@ -14,6 +14,8 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -21,8 +23,6 @@ import androidx.core.content.ContextCompat;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import codigo.cafe.alsvinlaunch.R;
 
@@ -36,6 +36,10 @@ import codigo.cafe.alsvinlaunch.R;
  *  - Timer de respaldo ahora solo refresca WiFi. BT tiene su propio BroadcastReceiver
  *    y no necesita polling — llamarlo cada 10 s era la fuente del spam en logcat.
  *  - btAdapterDisponible: flag que evita reintentar si el sistema no tiene BT real.
+ *  - El refresco de respaldo usa Handler (uptime) en vez de java.util.Timer. Timer
+ *    se basa en el reloj de pared: cuando el headunit arranca en 2007 y la red
+ *    sincroniza a la fecha real, scheduleAtFixedRate intentaba "recuperar" ~19 años
+ *    de ejecuciones perdidas e inundaba el hilo UI, congelando el launcher.
  */
 public class StatusIndicatorManager {
 
@@ -50,7 +54,7 @@ public class StatusIndicatorManager {
     private final ImageView iconoBluetooth;
     private final TextView  textoBluetooth;
 
-    private Timer             temporizador;
+    private final Handler     handlerRespaldo = new Handler(Looper.getMainLooper());
     private BroadcastReceiver receptorWifi;
     private BroadcastReceiver receptorBluetooth;
 
@@ -94,11 +98,7 @@ public class StatusIndicatorManager {
     public void detener() {
         corriendo = false; // ← resetear guard
 
-        if (temporizador != null) {
-            temporizador.cancel();
-            temporizador.purge();
-            temporizador = null;
-        }
+        handlerRespaldo.removeCallbacks(tareaRespaldo);
         try {
             if (receptorWifi != null) {
                 actividad.unregisterReceiver(receptorWifi);
@@ -210,14 +210,18 @@ public class StatusIndicatorManager {
      * del "Bluetooth binder is null" repetido cada 10 s en logcat.
      */
     private void iniciarTimerRespaldo() {
-        temporizador = new Timer();
-        temporizador.scheduleAtFixedRate(new TimerTask() {
-            @Override public void run() {
-                actividad.runOnUiThread(() -> actualizarWifi());
-                // BT deliberadamente excluido del timer
-            }
-        }, INTERVALO_RESPALDO, INTERVALO_RESPALDO);
+        handlerRespaldo.removeCallbacks(tareaRespaldo);
+        handlerRespaldo.postDelayed(tareaRespaldo, INTERVALO_RESPALDO);
     }
+
+    private final Runnable tareaRespaldo = new Runnable() {
+        @Override public void run() {
+            if (!corriendo) return;
+            actualizarWifi();
+            // BT deliberadamente excluido del timer
+            handlerRespaldo.postDelayed(this, INTERVALO_RESPALDO);
+        }
+    };
 
     // ══════════════════════════════════════
     //  WIFI

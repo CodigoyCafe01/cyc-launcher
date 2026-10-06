@@ -73,6 +73,15 @@ public class MediaWidgetManager {
 
     private static final long INTERVALO_SONDEO_MS = 3000L;
 
+    // Modo BT sin MediaSession (Android 6 / stacks OEM): el widget se alimenta de
+    // los broadcasts AVRCP que reenvía ServicioNotificaciones y los botones usan
+    // KeyEvents de media.
+    private boolean modoBt = false;
+    private String tituloBt = "";
+    private String artistaBt = "";
+    private long ultimoEventoBtMs = 0L;
+    private static final long TIMEOUT_BT_PAUSADO_MS = 10 * 60_000L;
+
     private final Handler handlerProgreso = new Handler(Looper.getMainLooper());
     private final Runnable runnableProgreso = new Runnable() {
         @Override
@@ -116,6 +125,13 @@ public class MediaWidgetManager {
             if (destruido) return;
             if (controladorActual == null && tienePermisoNotificaciones()) {
                 actualizar();
+            }
+            // BT pausado sin eventos durante mucho tiempo: probablemente se
+            // desconectó sin avisar; ocultar el widget.
+            if (modoBt && !estaReproduciendo && SystemClock.elapsedRealtime()
+                    - ultimoEventoBtMs > TIMEOUT_BT_PAUSADO_MS) {
+                limpiarControlador();
+                return;
             }
             if (!destruido && controladorActual == null) {
                 handlerSondeo.removeCallbacks(this);
@@ -179,18 +195,19 @@ public class MediaWidgetManager {
             MediaController elegido = elegirMejorControlador(controladores);
             if (elegido != null) {
                 adjuntarControlador(elegido);
-            } else {
+            } else if (!modoBt) {
                 limpiarControlador();
             }
         } catch (Exception e) {
-            limpiarControlador();
+            if (!modoBt) limpiarControlador();
         }
     }
 
-    private boolean esAppRadioBT(String paquete) {
+    /** Fuentes propias del headunit (radio, DVD/USB, AUX) que no se muestran en el widget. */
+    private boolean esFuenteHeadunit(String paquete) {
         if (paquete == null) return false;
         String p = paquete.toLowerCase(Locale.US);
-        return p.contains("bluetooth") || p.contains("radio")
+        return p.contains("radio")
                 || p.equals("com.ts.main") || p.contains("ts.main")
                 || p.contains("dvdplayer") || p.contains("ts.dvd")
                 || p.contains("avin") || p.contains("aux");
@@ -203,7 +220,7 @@ public class MediaWidgetManager {
         MediaController conMetadata = null;
         for (MediaController c : controladores) {
             if (c == null) continue;
-            if (esAppRadioBT(c.getPackageName())) continue;
+            if (esFuenteHeadunit(c.getPackageName())) continue;
             PlaybackState s = c.getPlaybackState();
             if (s != null && s.getState() == PlaybackState.STATE_PLAYING) {
                 reproduciendo = c;
@@ -304,7 +321,7 @@ public class MediaWidgetManager {
      * Llama a actualizar() por si algo cambió mientras la pantalla estaba bloqueada.
      */
     public void mostrar() {
-        if (controladorActual != null) {
+        if (controladorActual != null || modoBt) {
             widgetReproductor.setVisibility(View.VISIBLE);
         }
         actualizar();
@@ -373,7 +390,7 @@ public class MediaWidgetManager {
                     handlerSondeo.postDelayed(() -> {
                         if (destruido || controladorActual != null) return;
                         actualizar();
-                        if (controladorActual == null) limpiarControlador();
+                        if (controladorActual == null && !modoBt) limpiarControlador();
                     }, 1500);
                 }
             });
@@ -391,12 +408,16 @@ public class MediaWidgetManager {
             public void onReceive(Context context, Intent intent) {
                 boolean esAvrcp = intent.getBooleanExtra(
                         ServicioNotificaciones.EXTRA_FUENTE_AVRCP, false);
-                if (esAvrcp) return; // Ignorar eventos de Bluetooth/AVRCP
+                if (esAvrcp) {
+                    manejarEventoBt(intent);
+                    return;
+                }
 
                 String paquete = intent.getStringExtra("paquete");
-                if (paquete != null && esAppRadioBT(paquete)) return; // Ignorar Radio
+                if (paquete != null && esFuenteHeadunit(paquete)) return; // Ignorar Radio/DVD/AUX
 
-                estaReproduciendo = intent.getBooleanExtra("reproduciendo", false);
+                // En modo BT el estado lo dictan los eventos AVRCP, no el sondeo de sesiones
+                if (!modoBt) estaReproduciendo = intent.getBooleanExtra("reproduciendo", false);
                 if (controladorActual == null && tienePermisoNotificaciones()) {
                     try {
                         ComponentName cn = new ComponentName(actividad, ServicioNotificaciones.class);
@@ -413,6 +434,40 @@ public class MediaWidgetManager {
                 ContextCompat.RECEIVER_EXPORTED);
     }
 
+    /**
+     * Audio BT sin MediaSession (típico en Android 6: la app BT nativa no publica
+     * sesión). Se muestra el widget con la metadata AVRCP del broadcast; si llega
+     * una MediaSession real, esa tiene prioridad.
+     */
+    private void manejarEventoBt(Intent intent) {
+        if (controladorActual != null) return;
+        if (intent.getBooleanExtra(ServicioNotificaciones.EXTRA_BT_DESCONECTADO, false)) {
+            if (modoBt) limpiarControlador();
+            return;
+        }
+        String titulo = intent.getStringExtra("titulo");
+        if (titulo != null && !titulo.isEmpty()) {
+            // Evento de pista: reemplaza ambos (el artista puede venir vacío)
+            String artista = intent.getStringExtra("artista");
+            tituloBt = titulo;
+            artistaBt = artista != null ? artista : "";
+        }
+        modoBt = true;
+        ultimoEventoBtMs = SystemClock.elapsedRealtime();
+        estaReproduciendo = intent.getBooleanExtra("reproduciendo", true);
+
+        duracionMs = 0L;
+        puedeBuscar = false;
+        reproductorSeekbar.setProgress(0);
+        reproductorSeekbar.setEnabled(false);
+        reproductorTiempoActual.setText("0:00");
+        reproductorTiempoTotal.setText("0:00");
+        reproductorIcono.setImageResource(R.drawable.ic_music);
+        if (colorListener != null) colorListener.onSinColor();
+
+        mostrarWidget(tituloBt.isEmpty() ? "Bluetooth" : tituloBt, artistaBt);
+    }
+
     // ──────────────────────────────────────────────
     //  Gestión del controlador
     // ──────────────────────────────────────────────
@@ -426,6 +481,7 @@ public class MediaWidgetManager {
         }
         desconectarCallback();
         controladorActual = nuevo;
+        modoBt = false;
         handlerSondeo.removeCallbacks(runnableSondeo);
 
         callbackControlador = new MediaController.Callback() {
@@ -597,6 +653,9 @@ public class MediaWidgetManager {
         handlerReenganche.removeCallbacks(runnableReenganche);
         controladorActual = null;
         estaReproduciendo = false;
+        modoBt = false;
+        tituloBt = "";
+        artistaBt = "";
         duracionMs = 0L;
         puedeBuscar = false;
         if (!usuarioArrastrando) {

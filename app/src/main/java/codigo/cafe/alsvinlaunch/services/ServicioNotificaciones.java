@@ -26,6 +26,9 @@ public class ServicioNotificaciones extends NotificationListenerService {
     // Intent extra para indicar que el broadcast viene del AVRCP BT
     public static final String EXTRA_FUENTE_AVRCP = "fuente_avrcp";
 
+    // Intent extra para indicar que el teléfono BT se desconectó (ocultar widget)
+    public static final String EXTRA_BT_DESCONECTADO = "bt_desconectado";
+
     // ── Receptor AVRCP ──────────────────────────────────────────────────────
     // El stack BT de Android emite estos intents cuando el teléfono conectado
     // via A2DP envía metadata de la canción en curso (AVRCP).
@@ -42,6 +45,12 @@ public class ServicioNotificaciones extends NotificationListenerService {
     private static final String MTK_AVRCP_META      = "com.mediatek.bluetooth.avrcp.TRACK_CHANGED";
     private static final String AVRCP_META_CHANGED  = "android.media.METADATA_CHANGED";
     private static final String AVRCP2_TRACK_EVENT  = "android.bluetooth.avrcp.action.TRACK_CHANGED";
+    // Perfil A2DP Sink (el headunit recibe audio del teléfono)
+    private static final String A2DP_SINK_PLAYING   = "android.bluetooth.a2dp-sink.profile.action.PLAYING_STATE_CHANGED";
+    private static final String A2DP_SINK_CONEXION  = "android.bluetooth.a2dp-sink.profile.action.CONNECTION_STATE_CHANGED";
+    private static final String ACL_DESCONECTADO    = "android.bluetooth.device.action.ACL_DISCONNECTED";
+    private static final String EXTRA_ESTADO_PERFIL = "android.bluetooth.profile.extra.STATE";
+    private static final int    A2DP_STATE_PLAYING  = 10; // BluetoothA2dp.STATE_PLAYING
     // Headunit TS8227L (radio FM com.ts.main.radio)
     private static final String TS_RADIO_INFO       = "com.ts.radio.ACTION_RADIO_INFO";
     private static final String TS_RADIO_FREQ       = "com.ts.radio.FREQUENCY_CHANGED";
@@ -96,8 +105,26 @@ public class ServicioNotificaciones extends NotificationListenerService {
                 String artista  = null;
                 String album    = null;
                 boolean reproduciendo = true;
+                // Radio y DVD del headunit no son BT: se etiquetan con su paquete para que el widget los filtre
+                String paqueteNoBt = null;
 
                 switch (accion) {
+                    case A2DP_SINK_CONEXION: {
+                        // 0 = BluetoothProfile.STATE_DISCONNECTED
+                        if (intent.getIntExtra(EXTRA_ESTADO_PERFIL, -1) != 0) return;
+                        enviarBtDesconectado();
+                        return;
+                    }
+                    case ACL_DESCONECTADO: {
+                        enviarBtDesconectado();
+                        return;
+                    }
+                    case HICAR_META_CHANGED:
+                    case A2DP_SINK_PLAYING: {
+                        reproduciendo = intent.getIntExtra(EXTRA_ESTADO_PERFIL,
+                                A2DP_STATE_PLAYING) == A2DP_STATE_PLAYING;
+                        break;
+                    }
                     case AVRCP_TRACK_EVENT: {
                         // Standard Android AVRCP Controller: metadata como parcelable
                         MediaMetadata meta = intent.getParcelableExtra(AVRCP_META_EXTRA);
@@ -128,7 +155,6 @@ public class ServicioNotificaciones extends NotificationListenerService {
                         album         = intent.getStringExtra("album");
                         break;
                     }
-                    case HICAR_META_CHANGED:
                     case MTK_AVRCP_META:
                     case AVRCP2_TRACK_EVENT:
                     case AVRCP_META_CHANGED: {
@@ -159,6 +185,7 @@ public class ServicioNotificaciones extends NotificationListenerService {
                         }
                         titulo  = "Radio FM";
                         artista = freq != null ? freq : "";
+                        paqueteNoBt = "com.ts.main";
                         break;
                     }
                     case TS_MEDIA_META: {
@@ -167,6 +194,7 @@ public class ServicioNotificaciones extends NotificationListenerService {
                                 intent.getStringExtra("name"));
                         artista = intent.getStringExtra("artist");
                         album   = intent.getStringExtra("album");
+                        paqueteNoBt = "com.ts.dvdplayer";
                         break;
                     }
                     default:
@@ -183,8 +211,8 @@ public class ServicioNotificaciones extends NotificationListenerService {
                 broadcast.putExtra("artista",       artista);
                 broadcast.putExtra("album",         album);
                 broadcast.putExtra("reproduciendo", reproduciendo);
-                broadcast.putExtra("paquete",       "com.android.bluetooth");
-                broadcast.putExtra(EXTRA_FUENTE_AVRCP, true);
+                broadcast.putExtra("paquete",       paqueteNoBt != null ? paqueteNoBt : "com.android.bluetooth");
+                broadcast.putExtra(EXTRA_FUENTE_AVRCP, paqueteNoBt == null);
                 sendBroadcast(broadcast);
             }
         };
@@ -200,9 +228,21 @@ public class ServicioNotificaciones extends NotificationListenerService {
         filtro.addAction(TS_RADIO_INFO);
         filtro.addAction(TS_RADIO_FREQ);
         filtro.addAction(TS_MEDIA_META);
+        filtro.addAction(A2DP_SINK_PLAYING);
+        filtro.addAction(A2DP_SINK_CONEXION);
+        filtro.addAction(ACL_DESCONECTADO);
         try {
             registerReceiver(receptorAvrcp, filtro);
         } catch (Exception ignored) {}
+    }
+
+    private void enviarBtDesconectado() {
+        Intent broadcast = new Intent(ACCION_MEDIA_CAMBIO);
+        broadcast.putExtra("reproduciendo", false);
+        broadcast.putExtra("paquete",       "com.android.bluetooth");
+        broadcast.putExtra(EXTRA_FUENTE_AVRCP, true);
+        broadcast.putExtra(EXTRA_BT_DESCONECTADO, true);
+        sendBroadcast(broadcast);
     }
 
     // ── MediaSession estándar ────────────────────────────────────────────────
