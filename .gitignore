@@ -23,3 +23,7 @@ app/release/baselineProfiles/1/app-launcher.dm
 app/release/app-launcher.apk
 app/release/baselineProfiles/0/app-launcher.dm
 /public/node_modules
+
+keystore.properties
+*.jks
+*.keystore

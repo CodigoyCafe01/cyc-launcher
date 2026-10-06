@@ -6,7 +6,7 @@ espressoCore = "3.7.0"
 appcompat = "1.7.1"
 material = "1.13.0"
 palette = "1.0.0"
-billing = "7.0.0"
+billing = "8.0.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
