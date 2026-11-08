@@ -6,7 +6,7 @@ Desarrollado por **Código y Café** · Paquete `codigo.cafe.alsvinlaunch`
 
 [Disponible en Google Play](https://play.google.com/store/apps/details?id=codigo.cafe.alsvinlaunch)
 
-![Pantalla principal de AlsvinLaunch](public/home.jpeg)
+![Pantalla principal de AlsvinLaunch](docs/screenshots/home.jpeg)
 
 ## Funciones
 
@@ -75,7 +75,7 @@ app/src/main/java/codigo/cafe/alsvinlaunch/
 ├── services/           Servicio de notificaciones y arranque al encender
 ├── views/              Vistas personalizadas (velocímetro)
 ├── model/, util/       Modelos y utilidades
-public/                 Material de marketing (volantes); no forma parte de la app
+docs/screenshots/       Capturas para este README
 ```
 
 ## Stack

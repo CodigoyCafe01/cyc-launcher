@@ -22,8 +22,12 @@ app/release/baselineProfiles/1/app-launcher.dm
 /app/release
 app/release/app-launcher.apk
 app/release/baselineProfiles/0/app-launcher.dm
-/public/node_modules
+# Material de marketing con datos personales: no se publica
+/public/
 
 keystore.properties
 *.jks
 *.keystore
+
+# Configuración local de Android Studio
+/.idea/

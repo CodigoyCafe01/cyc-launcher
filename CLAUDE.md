@@ -20,7 +20,8 @@ Launcher Android para el head unit (radio) del auto. Paquete `codigo.cafe.alsvin
 | `model`, `util` | Modelos y utilidades |
 
 - Textos en `res/values/strings.xml` **y** `res/values-en/strings.xml`: agrega cada string en los dos.
-- `public/` es material de marketing (volantes, docs generados con Node). **No es código de la app**.
+- `public/` (material de marketing, volantes) está en `.gitignore`: contiene datos personales y **no se sube** a este repo público.
+- `docs/screenshots/` tiene las capturas del README. Antes de agregar una, revisa que no muestre nombres de WiFi, números ni otros datos personales.
 
 ## Reglas
 

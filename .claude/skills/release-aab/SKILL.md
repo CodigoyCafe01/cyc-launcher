@@ -17,7 +17,7 @@ Objetivo: dejar un `.aab` firmado con la upload key, con un `versionCode` nuevo,
 ## Datos del keystore
 
 - Keystore de upload: `<ruta-del-keystore>` (fuera del repo), alias `<alias>`.
-- El archivo **no tiene extensión**, así que `*.jks`/`*.keystore` del `.gitignore` no lo cubren. Si el usuario pide meterlo al repo, no lo copies sin antes advertirle (queda para siempre en el historial; el repo `CodigoyCafe01/alsvin-launcher` es privado) y nunca subas `keystore.properties` ni la contraseña.
+- El archivo **no tiene extensión**, así que `*.jks`/`*.keystore` del `.gitignore` no lo cubren. Si el usuario pide meterlo al repo, no lo copies sin antes advertirle (queda para siempre en el historial y el repo es público) y nunca subas `keystore.properties` ni la contraseña.
 - `keytool` y `jarsigner` pueden no estar en el PATH. Respaldo: `/c/Program Files/Android/Android Studio/jbr/bin/`.
 
 ## Pasos
