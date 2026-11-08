@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -96,7 +97,11 @@ public class ContactosLocalesManager {
     /** Elimina contacto por número */
     public void eliminar(String numero) {
         List<BluetoothContactsManager.ContactoBt> lista = obtenerTodos();
-        lista.removeIf(c -> c.numero.equals(numero));
+        // Iterator en lugar de removeIf (API 24) para soportar Android 6
+        Iterator<BluetoothContactsManager.ContactoBt> it = lista.iterator();
+        while (it.hasNext()) {
+            if (it.next().numero.equals(numero)) it.remove();
+        }
         guardarTodos(lista);
     }
 

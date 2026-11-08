@@ -32,7 +32,7 @@ git status --short
 grep -nE "minSdk|versionCode|versionName" app/build.gradle
 ```
 
-- `minSdk` debe ser **24 o más**: la protección automática de Play rechaza bundles con minSdk 23. Si es menor, avisa al usuario antes de seguir.
+- `minSdk` es **23** (Android 6) a propósito, para soportar radios con Android 6. La protección automática de Play rechaza bundles con minSdk 23: recuérdale al usuario que la tenga desactivada en Play Console antes de subir el AAB.
 
 - Si `keystore.properties` **falta**, detente: sin él Gradle genera un AAB **sin firmar** que Play rechaza. Dile al usuario que lo cree copiando `keystore.properties.example` y rellenando sus datos (él mismo, tú no).
 - Si hay cambios sin commitear, menciónalos en una línea (van a ir dentro del build) y sigue.
