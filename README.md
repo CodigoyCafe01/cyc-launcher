@@ -2,7 +2,7 @@
 
 Launcher para el head unit (radio Android) del auto, pensado para pantallas horizontales y para usarse mientras conduces: botones grandes, información clara y acceso rápido a lo que más usas.
 
-Desarrollado por **Código y Café** · Paquete `codigo.cafe.alsvinlaunch`
+Desarrollado por **Código y Café** · Paquete `codigo.cafe.alsvinlaunch` · Licencia [GPL-3.0](LICENSE)
 
 [Disponible en Google Play](https://play.google.com/store/apps/details?id=codigo.cafe.alsvinlaunch)
 
@@ -84,7 +84,7 @@ Java 8 · Gradle (version catalog) · compileSdk/targetSdk 36 · minSdk 23 · Ap
 
 ## Contribuir
 
-Los issues y pull requests son bienvenidos.
+Los issues y pull requests son bienvenidos. Al enviar un pull request aceptas que tu contribución se publique bajo la licencia GPL-3.0 del proyecto.
 
 - Cada texto nuevo va en `res/values/strings.xml` **y** en `res/values-en/strings.xml`.
 - Mantén la compatibilidad con Android 6 (API 23): si usas una API más nueva, protégela con `Build.VERSION.SDK_INT`.
@@ -96,4 +96,13 @@ AlsvinLaunch es gratis. Si te resulta útil, puedes apoyar con una donación des
 
 ## Licencia
 
-Pendiente de definir.
+Copyright (C) 2026 Código y Café
+
+Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la **GNU General Public License versión 3** publicada por la Free Software Foundation. Se distribuye sin ninguna garantía. Consulta el archivo [LICENSE](LICENSE) para ver el texto completo.
+
+En resumen: puedes usar, estudiar, modificar y compartir el código, pero si distribuyes una versión modificada (por ejemplo, en Google Play o preinstalada en radios) tienes que publicar su código fuente bajo la misma licencia.
+
+**Términos adicionales** (sección 7 de la GPL-3.0):
+
+- **Marca:** la licencia no concede derechos sobre los nombres *AlsvinLaunch* y *Código y Café*, el ícono, los logotipos ni el identificador `codigo.cafe.alsvinlaunch`. Si publicas tu propia versión, usa otro nombre, otro ícono y otro `applicationId`. Detalles en [MARCA.md](MARCA.md).
+- **Bibliotecas de Google Play:** como permiso adicional, se permite combinar este programa con Google Play Billing Library y otras bibliotecas de Google Play y distribuir el resultado, aunque esas bibliotecas no estén bajo la GPL.
