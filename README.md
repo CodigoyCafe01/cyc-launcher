@@ -46,8 +46,8 @@ Desarrollado por **Código y Café** · Paquete `codigo.cafe.alsvinlaunch`
 Necesitas [Android Studio](https://developer.android.com/studio) (o el Android SDK) y JDK 17.
 
 ```bash
-git clone https://github.com/CodigoyCafe01/alsvin-launcher.git
-cd alsvin-launcher
+git clone https://github.com/CodigoyCafe01/cyc-launcher.git
+cd cyc-launcher
 ./gradlew assembleDebug        # en Windows: gradlew.bat assembleDebug
 ```
 
