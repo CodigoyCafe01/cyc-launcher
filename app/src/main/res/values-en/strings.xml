@@ -61,6 +61,8 @@
     <string name="lbl_cargando_apps">Loading system apps…</string>
     <string name="btn_normal">Normal</string>
     <string name="btn_sistema">System</string>
+    <string name="tab_todas">All</string>
+    <string name="tab_sistema">System</string>
 
     <!-- ══════════ Lock screen ══════════ -->
     <string name="lbl_doble_toque">Double tap to unlock</string>

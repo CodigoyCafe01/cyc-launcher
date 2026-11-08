@@ -35,7 +35,9 @@ public class AllAppsActivity extends Activity {
     private List<AppInfo> appList;
     private AppsAdapter adapter;
     private boolean mostrandoSistema = false;
-    private TextView btnToggle;
+    private boolean cargandoSistema = false;
+    private TextView tabTodas;
+    private TextView tabSistema;
     private TextView tvCargando;
     private GridView grid;
 
@@ -50,7 +52,8 @@ public class AllAppsActivity extends Activity {
         setContentView(R.layout.activity_all_apps);
 
         grid     = (GridView) findViewById(R.id.apps_grid);
-        btnToggle = (TextView) findViewById(R.id.btn_toggle_sistema);
+        tabTodas   = (TextView) findViewById(R.id.tab_todas);
+        tabSistema = (TextView) findViewById(R.id.tab_sistema);
         tvCargando = (TextView) findViewById(R.id.tv_cargando);
 
         // Empezamos con una lista vacía para que el adapter no falle mientras carga.
@@ -71,14 +74,17 @@ public class AllAppsActivity extends Activity {
         });
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
-        btnToggle.setOnClickListener(v -> toggleModo());
+        tabTodas.setOnClickListener(v -> seleccionarTab(false));
+        tabSistema.setOnClickListener(v -> seleccionarTab(true));
+        actualizarTabs();
 
         // La carga de apps hace muchas llamadas al PackageManager (queryIntentActivities,
         // getLaunchIntentForPackage, loadLabel, loadIcon). Ejecutarla en el hilo principal
         // bloquea la UI y provoca ANR, así que la movemos a un hilo de fondo.
         tvCargando.setVisibility(View.VISIBLE);
         grid.setVisibility(View.INVISIBLE);
-        btnToggle.setEnabled(false);
+        // La pestaña de sistema depende de appsNormales, así que se habilita al terminar.
+        tabSistema.setEnabled(false);
         new Thread(() -> {
             List<AppInfo> cargadas = loadAppsNormales();
             runOnUiThread(() -> {
@@ -86,7 +92,7 @@ public class AllAppsActivity extends Activity {
                 appsNormales = cargadas;
                 tvCargando.setVisibility(View.GONE);
                 grid.setVisibility(View.VISIBLE);
-                btnToggle.setEnabled(true);
+                tabSistema.setEnabled(true);
                 if (!mostrandoSistema) {
                     appList = appsNormales;
                     adapter.notifyDataSetChanged();
@@ -95,38 +101,49 @@ public class AllAppsActivity extends Activity {
         }, "load-normal-apps").start();
     }
 
-    private void toggleModo() {
-        if (!mostrandoSistema) {
-            mostrandoSistema = true;
-            btnToggle.setText(R.string.btn_normal);
-            ((TextView) findViewById(R.id.tv_titulo)).setText(R.string.lbl_apps_del_sistema);
+    private void actualizarTabs() {
+        tabTodas.setSelected(!mostrandoSistema);
+        tabSistema.setSelected(mostrandoSistema);
+    }
 
-            if (appsSistema != null) {
-                appList = appsSistema;
-                adapter.notifyDataSetChanged();
-            } else {
-                tvCargando.setVisibility(View.VISIBLE);
-                grid.setVisibility(View.INVISIBLE);
-                btnToggle.setEnabled(false);
-                new Thread(() -> {
-                    appsSistema = loadAppsSistemaOcultas();
-                    runOnUiThread(() -> {
-                        if (isFinishing() || isDestroyed()) return;
-                        tvCargando.setVisibility(View.GONE);
-                        grid.setVisibility(View.VISIBLE);
-                        btnToggle.setEnabled(true);
-                        appList = appsSistema;
-                        adapter.notifyDataSetChanged();
-                    });
-                }, "load-system-apps").start();
-            }
-        } else {
-            mostrandoSistema = false;
-            btnToggle.setText(R.string.btn_sistema);
-            ((TextView) findViewById(R.id.tv_titulo)).setText(R.string.lbl_todas_apps);
+    private void seleccionarTab(boolean sistema) {
+        if (sistema == mostrandoSistema) return;
+        if (sistema && appsNormales == null) return; // aún cargando las apps normales
+        mostrandoSistema = sistema;
+        actualizarTabs();
+
+        if (!sistema) {
+            tvCargando.setVisibility(View.GONE);
+            grid.setVisibility(View.VISIBLE);
             appList = appsNormales;
             adapter.notifyDataSetChanged();
+            return;
         }
+
+        if (appsSistema != null) {
+            appList = appsSistema;
+            adapter.notifyDataSetChanged();
+            return;
+        }
+
+        tvCargando.setVisibility(View.VISIBLE);
+        grid.setVisibility(View.INVISIBLE);
+        if (cargandoSistema) return;
+        cargandoSistema = true;
+        new Thread(() -> {
+            List<AppInfo> cargadas = loadAppsSistemaOcultas();
+            runOnUiThread(() -> {
+                cargandoSistema = false;
+                if (isFinishing() || isDestroyed()) return;
+                appsSistema = cargadas;
+                // Si el usuario volvió a "Todas" mientras cargaba, no pisamos su lista.
+                if (!mostrandoSistema) return;
+                tvCargando.setVisibility(View.GONE);
+                grid.setVisibility(View.VISIBLE);
+                appList = appsSistema;
+                adapter.notifyDataSetChanged();
+            });
+        }, "load-system-apps").start();
     }
 
     private List<AppInfo> loadAppsNormales() {

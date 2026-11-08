@@ -61,6 +61,8 @@
     <string name="lbl_cargando_apps">Cargando apps del sistema…</string>
     <string name="btn_normal">Normal</string>
     <string name="btn_sistema">Sistema</string>
+    <string name="tab_todas">Todas</string>
+    <string name="tab_sistema">Sistema</string>
 
     <!-- ══════════ Pantalla de bloqueo ══════════ -->
     <string name="lbl_doble_toque">Doble toque para desbloquear</string>
