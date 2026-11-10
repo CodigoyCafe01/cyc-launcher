@@ -57,6 +57,17 @@ El APK queda en `app/build/outputs/apk/debug/`. Para instalarlo en el radio por 
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
+### Publicar un APK en Releases
+
+El workflow `.github/workflows/release-apk.yml` compila el APK y crea un Release en GitHub con él. Se lanza al subir un tag que empiece por `v`:
+
+```bash
+git tag v10
+git push origin v10
+```
+
+También se puede ejecutar a mano desde **Actions → Release APK → Run workflow**, indicando el tag.
+
 ### Build de release (opcional)
 
 Solo hace falta para publicar. Copia `keystore.properties.example` como `keystore.properties` y rellena los datos de tu propio keystore. Ese archivo y los `.jks`/`.keystore` están en `.gitignore` y **nunca** deben subirse al repositorio.
