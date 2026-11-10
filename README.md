@@ -1,4 +1,4 @@
-# AlsvinLaunch
+# CyCLaunch
 
 Launcher para el head unit (radio Android) del auto, pensado para pantallas horizontales y para usarse mientras conduces: botones grandes, información clara y acceso rápido a lo que más usas.
 
@@ -27,7 +27,7 @@ Desarrollado por **Código y Café** · Paquete `codigo.cafe.alsvinlaunch` · Li
 
 - Android **6.0 (API 23)** o superior.
 - Pantalla horizontal (head units de 7"/9"/10").
-- Para usarlo como pantalla de inicio, elige AlsvinLaunch como launcher predeterminado.
+- Para usarlo como pantalla de inicio, elige CyCLaunch como launcher predeterminado.
 
 ### Permisos que usa
 
@@ -92,7 +92,7 @@ Los issues y pull requests son bienvenidos. Al enviar un pull request aceptas qu
 
 ## Apoyar el proyecto
 
-AlsvinLaunch es gratis. Si te resulta útil, puedes apoyar con una donación desde el botón **Apoyar** dentro de la app.
+CyCLaunch es gratis. Si te resulta útil, puedes apoyar con una donación desde el botón **Apoyar** dentro de la app.
 
 ## Licencia
 
@@ -104,5 +104,5 @@ En resumen: puedes usar, estudiar, modificar y compartir el código, pero si dis
 
 **Términos adicionales** (sección 7 de la GPL-3.0):
 
-- **Marca:** la licencia no concede derechos sobre los nombres *AlsvinLaunch* y *Código y Café*, el ícono, los logotipos ni el identificador `codigo.cafe.alsvinlaunch`. Si publicas tu propia versión, usa otro nombre, otro ícono y otro `applicationId`. Detalles en [MARCA.md](MARCA.md).
+- **Marca:** la licencia no concede derechos sobre los nombres *CyCLaunch* y *Código y Café*, el ícono, los logotipos ni el identificador `codigo.cafe.alsvinlaunch`. Si publicas tu propia versión, usa otro nombre, otro ícono y otro `applicationId`. Detalles en [MARCA.md](MARCA.md).
 - **Bibliotecas de Google Play:** como permiso adicional, se permite combinar este programa con Google Play Billing Library y otras bibliotecas de Google Play y distribuir el resultado, aunque esas bibliotecas no estén bajo la GPL.
